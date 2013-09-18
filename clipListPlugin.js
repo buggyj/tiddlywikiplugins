@@ -19,7 +19,7 @@
 !!!!!Code
 ***/
 //{{{
-version.extensions.ClipListPlugin= {major: 1, minor: 1, revision: 1, date: new Date(2013,09,15)};
+//version.extensions.ClipListPlugin= {major: 1, minor: 1, revision: 1, date: new Date(2013,09,15)};
 
 config.macros.ClipList = {};
 config.macros.ClipList.handler = function (place,macroName,params,wikifier,paramString,tiddler){ 
@@ -56,35 +56,7 @@ config.macros.ClipList.handler = function (place,macroName,params,wikifier,param
 			store.saveTiddler(tiddler);
 			story.refreshTiddler(tiddler.title,null,true);
 		}
-		var tiddom=story.findContainingTiddler(place);
-		tiddom.cliplist_savedOnClick=document.onclick;
 
-
-		tiddom.onclick=function(ev) { 
-			if (!ev) var ev=window.event; var target=resolveTarget(ev);
-					
-			if (tiddom.cliplist_savedOnClick)
-				var retval=tiddom.cliplist_savedOnClick.apply(this,arguments);
-			// if click was inside a popup... leave soliton panels alone
-			var p=target; while (p) if (hasClass(p,"popup")) break; else p=p.parentNode;
-			if (p) return retval;
-			// if click was inside soliton panel (or something contained by a soliton panel), leave it alone
-			var p=target; while (p) {
-				if ((hasClass(p,"sliderPanel"))&&p.getAttribute("soliton")=="true") break;
-				p=p.parentNode;
-			}
-			if (p) return retval;
-			// otherwise, find and close all soliton panels...
-			var all=tiddom.getElementsByTagName("DIV");
-			for (var i=0; i<all.length; i++) {
-				 // if it is not a soliton panel, or the click was on the button that opened this panel, don't close it.
-				if (all[i].getAttribute("soliton")!="true" || all[i].button==target) continue;
-				// otherwise, if the panel is currently visible, close it by clicking it's button
-				if (all[i].style.display!="none") window.onClickClipList({target:all[i].button})
-				if (!hasClass(all[i],"sliderPanel")) all[i].style.display="none";
-			}
-			return retval;
-		};
 	}
 }
 //}}}
@@ -170,8 +142,23 @@ window.onClickClipList=function(e)
 		}
 	}
 
-	if (e.shiftKey || theTarget!=resolveTarget(e))
-		{ e.cancelBubble=true; if (e.stopPropagation) e.stopPropagation(); }
+	var tiddlerElem = story.findContainingTiddler(place);
+	//alert(tiddlerElem.getAttribute("tiddler"));
+	// otherwise, find and close all soliton panels...
+
+	var all=tiddlerElem.getElementsByTagName("div");
+	
+	for (var i=0; i<all.length; i++) {
+		//alert("1");
+		//if (!hasClass(all[i],"sliderPanel")) continue;
+		 // if it is not a soliton panel, or the click was on the button that opened this panel, don't close it.
+		if (all[i].getAttribute("soliton")!="true" || all[i].button==theTarget) continue;//alert("2");
+		// otherwise, if the panel is currently visible, close it by clicking it's button
+		if (all[i].style.display!="none") all[i].style.display="none"; //else alert("3");
+		//if (!hasClass(all[i],"sliderPanel")) all[i].style.display="none";
+	}
+	//if (e.shiftKey || theTarget!=resolveTarget(e))
+		//{ e.cancelBubble=true; if (e.stopPropagation) e.stopPropagation(); }
 	Popup.remove(); // close open popup (if any)
 	return false;
 }
