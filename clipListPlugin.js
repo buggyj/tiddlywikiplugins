@@ -5,11 +5,9 @@
 |Version|1.0|
 |Author|BJ|
 |License|[[Creative Commons Attribution-ShareAlike 2.5 License|http://creativecommons.org/licenses/by-sa/2.5/]]|
-|~CoreVersion|2.2|
 |Type|plugin|
 |Requires||
 |Overrides||
-|Options|##Configuration|
 |Description|shows clips from a folded list|
 ||Base on NestedSlidersPlugin - http://www.TiddlyTools.com/#NestedSlidersPlugin| 
 !!!!!Documentation
@@ -24,57 +22,88 @@
 config.macros.ClipList = {};
 config.macros.ClipList.handler = function (place,macroName,params,wikifier,paramString,tiddler){ 
     // this will run when macro is called from a tiddler
-    var tidShowLabel= 'delete fold';
-
-    var togShow = function (e) {
+    var tidShowLabelDl= 'delete clip';
+    var togShowDl = function (e) {
         if (!e) var e = window.event;
-        alert("delete a fold by draging and dropping it here");
+        alert("delete a clip by draging and dropping it here");
         e.cancelBubble = true;
         if (e.stopPropagation)
            e.stopPropagation();
         return(false);
     }//end func togShow
     if (true){//!!tiddler.fields.countx) {//only in our list tiddlers
-		var tag =createTiddlyButton(place,tidShowLabel,"drag a fold here",togShow,"button","togShowBtn");
+		var tag =createTiddlyButton(place,tidShowLabelDl,"drag a clip here",togShowDl,"button","togShowBtn");
 
 		tag.ondragover=function (ev)
 		{
 			ev.preventDefault();
 		}
 
-		tag.ondrop=	function(ev)
+		tag.ondrop=	function(e)
 		{
-			ev.preventDefault();
-			var data=ev.dataTransfer.getData("Text");
-			//var tid = store.getTiddler(tiddler.title);
+			if (!e) var e = window.event;			
+			e.cancelBubble = true;
+			if (e.stopPropagation)
+			   e.stopPropagation();
+			var data=e.dataTransfer.getData("Text");
+			if(data.substr(0,2)!="ᏜᏜ"){alert("format error");return;}
 			var txt=tiddler.text;
 			var parts= txt.split(data);
 			if(2!=parts.length){alert("format error");return;}
-			var index1= parts[0].lastIndexOf("ᏜᏜᏜᏜ");
-			var index2= parts[1].indexOf("ᏜᏜᏜᏜ");
-			tiddler.text= parts[0].substr(0,index1)+parts[1].substr(index2);
+
+			tiddler.text= parts.join("");
 			store.saveTiddler(tiddler);
 			story.refreshTiddler(tiddler.title,null,true);
+
+			return(false);
 		}
+
+	}
+    var tidShowLabelAdd= 'add clip';
+
+    var togShowAdd = function (e) {
+        if (!e) var e = window.event;
+        alert("add a clip by draging and dropping it here");
+        e.cancelBubble = true;
+        if (e.stopPropagation)
+           e.stopPropagation();
+        return(false);
+    }//end func togShow
+    if (true){//!!tiddler.fields.countx) {//only in our list tiddlers
+		var tag =createTiddlyButton(place,tidShowLabelAdd,"drag a clip here",togShowAdd,"button","togShowBtn");
 
 	}
 }
 //}}}
 //{{{
 config.commands.myedit={
-	text: "write",
-	tooltip: "Edit this tiddler in wysiwyg mode",
+	text: "EditClip",
+	tooltip: "Edit this clip",
 	readOnlyText: "view",
-	readOnlyTooltip: "View the source of this tiddler",
+	readOnlyTooltip: "View the source of this clip",
 	handler : function(event,src,title) {
 		onClickClipList(event);
-		//clearMessage();
-		//var tiddlerElem = document.getElementById(story.idPrefix + title);
-		//var fields = tiddlerElem.getAttribute("tiddlyFields");
-		//story.displayTiddler(null,title,"EasyEditTemplate",false,null,fields);
 		return false;
 	}
 }
+config.commands.cancelMylTiddler={
+	text: "cancel",
+	tooltip: "Undo your changes to this tiddler",
+	warning: "Are you sure you want to abandon any changes to '%0'?",
+	readOnlyText: "done",
+	readOnlyTooltip: "View this tiddler normally",
+	handler : function(event,src,title) {		
+		if( !readOnly) {
+			if(!confirm("abandon any changes?"))
+				return false;
+		}
+		//window.onClickClipList.edit =false;	
+		story.setDirty(title,false);
+		story.refreshTiddler(title,null,true);
+		return;
+	}
+};
+
 config.formatters.push( {
 	name: "ClipList",
 	match: "\\n?\\Ꮬ{2}",
@@ -90,16 +119,30 @@ config.formatters.push( {
 			{
 							  
 				var soliton=lookaheadMatch[2];
-				var label=lookaheadMatch[4];
+				var label=lookaheadMatch[4];		
+
 				// location for rendering button and panel
 				var place=w.output;
 				//var show="none"; 
 				var title='no title';
+				var tiddom=story.findContainingTiddler(place);
+				var titleis = tiddom.getAttribute("tiddler");
+				var tiddler = store.getTiddler(titleis);
+				var num = place.getAttribute("num");
+				if (!num) num=1;
+				else num++;
+				var part3=label.split("-")
+				part3.shift();
+				label='['+num+part3.join("-");//strip leading number
 				if (label) title=label.trim().slice(1,-1);
 
+				place.setAttribute("num",num);
 				// create the button
-				var btn = createTiddlyElement(createTiddlyElement(place,"h1",null,null,null),"a",null,null,title);//buttonClass,title);
-				var editbutton=createTiddlyElement(place,"div",null,null,null);
+				var clipbar=createTiddlyElement(place,"h1",null,null,null);
+				//var clipbar=createTiddlyElement(place,"div",null,null," ",{style:"font-size:12pt;line-height:12px"});
+				var container=createTiddlyElement(clipbar,"span",null,null,null);
+				var btn = createTiddlyElement(container,"a",null,null,title);//buttonClass,title);
+
 				btn.onclick=onClickClipList;
 				btn.setAttribute("href","javascript:;");
 				btn.innerHTML=title; 
@@ -112,12 +155,9 @@ config.formatters.push( {
 				btn.sliderPanel=panel; // so the button knows which slider panel it belongs to
 				panel.setAttribute("soliton",soliton=="*"?"true":"false");
 				panel.style.display = "none";
-				//var limit=w.source.indexOf(w.nextMatch,"ᏜᏜᏜᏜ")
-				//
-
-								
-
-                editbutton.setAttribute("class","toolbar");
+			
+				var editbutton=createTiddlyElement(clipbar,"span",null,null,null);
+				editbutton.align="right"
                 editbutton.setAttribute("macro","toolbar myedit");
 
 				var editpanel=createTiddlyElement(place,"div",null,panelClass,null);
@@ -129,14 +169,50 @@ config.formatters.push( {
 			    editbutton.sliderPanel=editpanel;
 				// render slider 
 				w.nextMatch = lookaheadMatch.index + lookaheadMatch[0].length;
-moan=true;//alert(w.nextMatch);
-
 				w.subWikify(panel,this.match);
-moan=false
+				
                 var src = w.source.substring(start,w.nextMatch);
-                editpanel.innerHTML=src;
-				editpanel.setAttribute("clipsrc",src);
-//alert(w.nextMatch);
+
+                if  (src.slice(src.length-2)=='ᏜᏜ') {
+					src=src.slice(0,-2);
+				}         
+				if  (src.substr(0,4)=='ᏜᏜᏜᏜ') 
+					editpanel.setAttribute("clipsrc",src);
+				else
+					editpanel.setAttribute("clipsrc",'ᏜᏜ'+src);
+				btn.editpanel=editpanel;
+				btn.ondragover=function (ev)
+				{
+					ev.preventDefault();
+				}
+
+				btn.ondrop=	function(e)
+				{
+					if (!e) var e = window.event;			
+					var data=e.dataTransfer.getData("Text");
+					if(data.substr(0,2)!="ᏜᏜ"){alert("format error1"+data);return;}
+					var txt=tiddler.text;
+					var parts= txt.split(data);//remove moving clip from present location
+					if(2!=parts.length) {
+						if (txt.substr(0, data.length)!=data) return;//not first clip in this list
+						else txt= txt.substr(data.length); //remove first item
+					} else {
+						txt= parts.join("");					
+					}
+                    e.cancelBubble = true;
+					if (e.stopPropagation)   e.stopPropagation();
+
+					//now splice in the moving clip
+					var oldtxt =btn.editpanel.getAttribute("clipsrc");
+					var parts= txt.split(oldtxt);//remove target clip from present location
+					if(2!=parts.length)	tiddler.text= data+txt;//begining of list
+					else 				tiddler.text= parts.join(data+oldtxt);
+					store.saveTiddler(tiddler);
+					story.refreshTiddler(tiddler.title,null,true);
+
+					return(false);
+				}
+
 			}
 		}
 	}
@@ -144,10 +220,11 @@ moan=false
 
 function drag(ev)
 {
-ev.dataTransfer.setData("Text",ev.target.innerHTML);
+ev.dataTransfer.setData("Text",ev.target.editpanel.getAttribute("clipsrc"));
 }
 //}}}
 //{{{
+
 window.onClickClipList=function(e)
 {
 	if (!e) var e = window.event;
@@ -157,25 +234,39 @@ window.onClickClipList=function(e)
 	if (!theTarget)  {alert("pa nellink");return false;}
 	var theSlider = theTarget.sliderPanel;
 	var isOpen = theSlider.style.display!="none";
-
+	var tiddom=story.findContainingTiddler(theTarget);
+	var title = tiddom.getAttribute("tiddler");
+	var tiddler = store.getTiddler(title);
 	// if SHIFT-CLICK, dock panel first (see [[MoveablePanelPlugin]])
 	if (e.shiftKey && config.macros.moveablePanel) config.macros.moveablePanel.dock(theSlider,e);
+	if (story.isDirty(title)){
 
+		if( !readOnly) {
+			if(!confirm("abandon any changes?"))
+				return false;
+		}
+		//window.onClickClipList.edit =false;
+	    tiddom.setAttribute("num",0);
+
+		story.refreshTiddler(tiddom.getAttribute("tiddler"),null,true);
+		story.setDirty(title,false);
+		return;
+	}
+    
 	// show/hide the slider
 	//if(config.options.chkAnimate )//&& (!hasClass(theSlider,'floatingPanel') || config.options.chkFloatingSlidersAnimate))
 		//anim.startAnimating(new Slider(theSlider,!isOpen,e.shiftKey || e.altKey,"none"));
 	//else
 		theSlider.style.display = isOpen ? "none" : "block";
 		
-    // if showing panel, set focus to first 'focus-able' element in panel
+
 	if (theSlider.style.display!="none") {
 		if (theSlider.getAttribute("editpanel")=="true") {
-			theSlider.innerHTML= store.getTiddlerText("ClipListPlugin##EditTemplate2");alert(theSlider.innerHTML);
-					
-			var tiddom=story.findContainingTiddler(theTarget);
-			var tiddler = store.getTiddler(tiddom.getAttribute("tiddler"));
+			//window.onClickClipList.edit =true;
+			orgTarget.style.display="none";//hide edit button
+			theSlider.innerHTML= store.getTiddlerText("ClipListPlugin##EditTemplate2");//alert(theSlider.innerHTML);
 			applyHtmlMacros(theSlider,tiddler);
-		} else {
+		} else {     // if showing panel, set focus to first 'focus-able' element in panel
 		
 			var ctrls=theSlider.getElementsByTagName("*");
 			for (var c=0; c<ctrls.length; c++) {
@@ -186,7 +277,7 @@ window.onClickClipList=function(e)
 		}
 	}
 
-	var tiddlerElem = story.findContainingTiddler(theTarget);
+	var tiddlerElem = story.findContainingTiddler(orgTarget);
 	// find and close all soliton panels...
 
 	var all=tiddlerElem.getElementsByTagName("div");
@@ -216,7 +307,7 @@ if (version.major+.1*version.minor+.01*version.revision>=2.2) {
 		}
 	};
 }
-//}}}
+
 
 config.macros.myedit={};
 Story.prototype.old={};
@@ -251,34 +342,90 @@ config.macros.myedit.gather = function(e,fields)
 		}
 	}
 };
+config.macros.drophere={};
+config.macros.drophere.handler= function(place, macroName,params,wikifier,paramString,tiddler) {
+					var tiddom=story.findContainingTiddler(place);
+				var titleis = tiddom.getAttribute("tiddler");
+				
+				tiddom.ondragover=function (ev)
+				{
+					ev.preventDefault();
+				}
+
+				tiddom.ondrop=	function(ev)
+				{
+					ev.preventDefault();
+					var data=ev.dataTransfer.getData("Text");//alert(data);
+					var tid = store.getTiddler(titleis);;//alert(titleis);
+					if(data.substr(0,4)!="ᏜᏜᏜᏜ"){alert("format error");return;}
+					var parts= tid.text.split(data);
+					if(1!=parts.length)return;
+					//var txt=tiddler.text;
+					//if(data.substr(2,2)!="ᏜᏜ") data = "ᏜᏜ"+data;
+					//if(data.substr(data.length-2)=="ᏜᏜ")  data = data.substr(0,data.length-2);
+					var num = tid.fields.countx;
+					if (!num) num=1;
+					else num++;
+					data=data.replace(/\[\d*\-/,'['+num+'-');//alert(data);
+					//var part3=label.split("-")
+					//part3.shift();
+					//label='['+num+part3.join("");//strip leading number
+					tid.text=data+tid.text;//alert(data);
+					tid.fields.countx=""+num;
+					
+					//tiddler.text= parts[0].substr(0,index1)+parts[1].substr(index2);
+					store.saveTiddler(tid);
+					autoSaveChanges(null,[tid]);
+					story.refreshTiddler(tid.title,null,true);
+				}
+}
+
 config.macros.myedit.handler= function(place, macroName,params,wikifier,paramString,tiddler)
 {
 	var field = 'text'
 	var rows =  0;
-	var defVal =  place.parentNode.getAttribute( params[0]);//alert(place.parentNode.getAttribute("class"));
-	place.parentNode.setAttribute("clipsrc","");
+	var editString =  place.parentNode.getAttribute( "clipsrc");//alert(place.parentNode.getAttribute("class"));
+	place.parentNode.setAttribute("clipsrc","");//remove nonedit string to stop it being gathered
 			var tiddlerElem = story.findContainingTiddler(place);
 			var tiddler = tiddlerElem ? store.getTiddler(tiddlerElem.getAttribute("tiddler")) : null;
-	alert(tiddler.title);
+	//alert(tiddler.title);
 	if((tiddler instanceof Tiddler) && field) {
 		story.setDirty(tiddler.title,true);
-		var parts= defVal.split('!/%');
+		var parts= editString.split('!/%%/');
 		var wrap=createTiddlyElement(null,"div");
-		wrap.setAttribute("clipsrc",parts[0]+'!/%');alert(parts[0]);
-		wrap.setAttribute("edit",'nonedit');//editpanel is set so that gather will find it - its a hack!!BJ
+		var parts2 = parts[0].split('[');
+		var preamble=parts2.shift() +'[';//part2[0] now contains (the first part of) the heading
+		var part3=parts2[0].split("-")
+		preamble+=part3.shift()+'-'; //alert(preamble);
+		parts2[0]=part3.join("-");//strip leading number
+		parts2=parts2.join('[');
+		parts2=parts2.split(']');
+		postscript=']'+parts2.pop();
+		var heading=parts2.join(']');
+		
+
+		wrap.setAttribute("clipsrc",preamble);//alert(preamble);
+		wrap.setAttribute("edit",'nonedit');
 		place.appendChild(wrap);
 		var e,v;
-		if(field != "text" && !rows) {
+		 {
 			e = createTiddlyElement(null,"input",null,null,null,{
 				type: "text", edit: field, size: "40", autocomplete: "off"
 			});
-			e.value = store.getValue(tiddler,field) || defVal;
+			e.value =heading;
 			place.appendChild(e);
-		} else {
+			e.setAttribute("edit",field);
+			 wrap=createTiddlyElement(null,"div");
+			wrap.setAttribute("clipsrc",postscript+'!/%%/');//alert(postscript);
+		    wrap.setAttribute("edit",'nonedit');
+		    place.appendChild(wrap);
+		}{
 			var wrapper1 = createTiddlyElement(null,"fieldset",null,"fieldsetFix");
 			var wrapper2 = createTiddlyElement(wrapper1,"div");
 			e = createTiddlyElement(wrapper2,"textarea");
+
 			e.value = v =   parts[1];
+
 			rows = rows || 10;
 			var lines = v.match(/\n/mg);
 			var maxLines = Math.max(parseInt(config.options.txtMaxEditRows,10),5);
@@ -289,11 +436,7 @@ config.macros.myedit.handler= function(place, macroName,params,wikifier,paramStr
 			e.setAttribute("edit",field);
 			place.appendChild(wrapper1);
 			//place.parentNode.editPanel.innerHTML=	store.getTiddlerText("ClipEditTemplate");
-		}		
-		wrap=createTiddlyElement(null,"div");
-		wrap.setAttribute("clipsrc",'!/%'+parts[02]);
-		wrap.setAttribute("edit",'nonedit');//editpanel is set so that gather will find it - its a hack!!BJ
-		place.appendChild(wrap);
+		}	
 		if(tiddler.isReadOnly()) {
 			e.setAttribute("readOnly","readOnly");
 			jQuery(e).addClass("readOnly");
@@ -301,10 +444,11 @@ config.macros.myedit.handler= function(place, macroName,params,wikifier,paramStr
 		return e;
 	}else ("error");
 };
+//}}}
 /*
 |~ViewToolbar|closeTiddler +editTiddler > fields syncing permalink references jump|
 |~EditToolbar|+saveTiddler -cancelTiddler deleteTiddler|
-
+drophere
 !ViewTemplate
 <!--{{{-->
 <div class='toolbar'><span  macro='ClipList'></span><span macro='toolbar [[ClipListPlugin::ViewToolbar]]'></span></div>
@@ -312,19 +456,16 @@ config.macros.myedit.handler= function(place, macroName,params,wikifier,paramStr
 <div class='subtitle'><span macro='view modifier link'></span>, <span macro='view modified date'></span> (<span macro='message views.wikified.createdPrompt'></span> <span macro='view created date'></span>)</div>
 <div class='tagging' macro='tagging'></div>
 <div class='tagged' macro='tags'></div>
+<div class='drophere' macro='drophere'></div>
 <div class='viewer' macro='view text wikified'></div>
 <div class='tagClear'></div>
 <!--}}}-->
 
 !EditTemplate2
 *<!--{{{-->
-<div class='toolbar' macro='toolbar +saveTiddler -cancelTiddler deleteTiddler'></div>
-<div class='title' macro='view title'></div>
-<div class='editor' macro='edit title'></div
-
+<div  macro='toolbar +saveTiddler -cancelMylTiddler deleteTiddler'></div>
 <div macro='annotations'></div>
 <div class='editor' macro='myedit clipsrc'></div>
-<div class='editor' macro='edit tags'></div><div class='editorFooter'><span macro='message views.editor.tagPrompt'></span><span macro='tagChooser excludeLists'></span></div>
 <!--}}}-->
 !end
 */
