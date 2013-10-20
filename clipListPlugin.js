@@ -1,19 +1,15 @@
 /***
 |Name|ClipListPlugin|
-|Source||
-|Documentation||
 |Version|1.0|
 |Author|BJ|
 |License|[[Creative Commons Attribution-ShareAlike 2.5 License|http://creativecommons.org/licenses/by-sa/2.5/]]|
 |Type|plugin|
-|Requires||
+|Requires|http://www.TiddlyTools.com/#TaggedTemplateTweak|
 |Overrides||
 |Description|shows clips from a folded list|
-||Base on NestedSlidersPlugin - http://www.TiddlyTools.com/#NestedSlidersPlugin| 
-!!!!!Documentation
->see [ClipListPluginInfo]]
-
-
+Idea started from NestedSlidersPlugin - http://www.TiddlyTools.com/#NestedSlidersPlugin
+!Description
+Create and manage lists of clips - for use with tiddlyclip
 !!!!!Code
 ***/
 //{{{
@@ -62,15 +58,25 @@ config.macros.ClipList.handler = function (place,macroName,params,wikifier,param
     var tidShowLabelAdd= 'add clip';
 
     var togShowAdd = function (e) {
+		var newclip='ᏜᏜᏜᏜ*[0-new]\n!/%%/\n';
         if (!e) var e = window.event;
-        alert("add a clip by draging and dropping it here");
         e.cancelBubble = true;
         if (e.stopPropagation)
            e.stopPropagation();
+         var tid = store.getTiddler(tiddler.title);
+		var num = tid.fields.countx;
+		if (!num) num=1;
+		else num++;
+	
+		tid.fields.countx=""+num;
+		tid.text= newclip.replace(/\[\d*\-/,'['+num+'-')+tid.text;
+		store.saveTiddler(tid);
+		autoSaveChanges(null,[tid]);
+		story.refreshTiddler(tid.title,null,true);
         return(false);
     }//end func togShow
     if (true){//!!tiddler.fields.countx) {//only in our list tiddlers
-		var tag =createTiddlyButton(place,tidShowLabelAdd,"drag a clip here",togShowAdd,"button","togShowBtn");
+		var tag =createTiddlyButton(place,tidShowLabelAdd,"new clip",togShowAdd,"button","togShowBtn");
 
 	}
 }
@@ -133,7 +139,7 @@ config.formatters.push( {
 				else num++;
 				var part3=label.split("-")
 				part3.shift();
-				label='['+num+part3.join("-");//strip leading number
+				label='['+num+'-'+part3.join("-");//strip leading number
 				if (label) title=label.trim().slice(1,-1);
 
 				place.setAttribute("num",num);
@@ -328,10 +334,24 @@ config.macros.myedit.gather = function(e,fields)
 		var f = e.getAttribute("edit");
 		
 		if (!!e.getAttribute("editpanel")) {
-			if(f) fields[f] +=e.value.replace(/\r/mg,"");
-			else fields['text'] +=e.getAttribute("clipsrc");
+			if(f) {if (f=='text') {
+				var temp=e.value.replace(/\r/mg,"");
+				if (temp.substr(temp.length-1)!='\n') temp = temp+'\n';
+				fields['text'] +=temp;
+			} else
+				fields[f] +=e.value.replace(/\r/mg,"");
+		} else {
+				var temp=e.getAttribute("clipsrc");
+
+				if (temp.substr(temp.length-1)!='\n') temp = temp+'\n';
+				fields['text'] +=temp;
+			}
 		} else if(f)
-			if (f=='text') fields[f] += e.value.replace(/\r/mg,"");
+			if (f=='text') {
+				var temp=e.value.replace(/\r/mg,"");
+				if (temp.substr(temp.length-1)!='\n') temp = temp+'\n';
+				fields['text'] +=temp;
+			} 
 			else if(f=='nonedit') fields['text'] +=e.getAttribute("clipsrc");
 			else  fields[f] = e.value.replace(/\r/mg,"");
 			
@@ -444,6 +464,25 @@ config.macros.myedit.handler= function(place, macroName,params,wikifier,paramStr
 		return e;
 	}else ("error");
 };
+config.macros.newClipList={};
+config.macros.newClipList.label="new clip list";
+config.macros.newClipList.prompt="new clip list";
+config.macros.newClipList.accessKey=null;
+config.macros.newClipList.title="new clip list";
+config.macros.newClipList.template="ClipListPlugin##EditTemplate";
+config.macros.newClipList.handler = function(place,macroName,params,wikifier,paramString)
+{
+	if(!readOnly) {
+		params = paramString.parseParams("anon",null,true,false,false);
+		var title = params[1] && params[1].name == "anon" ? params[1].value : this.title;
+		title = getParam(params,"title",title);
+		var btn=config.macros.newTiddler.createNewTiddlerButton(place,title,params,this.label,this.prompt,this.accessKey,"text",true);
+		btn.setAttribute("newTemplate",this.template);
+		btn.setAttribute("newText","");
+	}
+};
+config.shadowTiddlers.SideBarOptions = "<<newClipList fields:'template:ClipListPlugin##'>>"
+                                       +config.shadowTiddlers.SideBarOptions;
 //}}}
 /*
 |~ViewToolbar|closeTiddler +editTiddler > fields syncing permalink references jump|
@@ -466,6 +505,15 @@ drophere
 <div  macro='toolbar +saveTiddler -cancelMylTiddler deleteTiddler'></div>
 <div macro='annotations'></div>
 <div class='editor' macro='myedit clipsrc'></div>
+<!--}}}-->
+!EditTemplate
+<!--{{{-->
+<div class='toolbar' macro='toolbar [[ToolbarCommands::EditToolbar]]'></div>
+<div class='title' macro='view title'></div>
+<div class='editor' macro='edit title'></div>
+<div class='editor' style='display:none' macro='edit text'></div>
+<div macro='annotations'></div>
+<div class='editor' macro='edit tags'></div><div class='editorFooter'><span macro='message views.editor.tagPrompt'></span><span macro='tagChooser excludeLists'></span></div>
 <!--}}}-->
 !end
 */

@@ -5,7 +5,7 @@
 |Date:|7-June-2013|
 |Source:||
 |Author:|BuggyJay|
-|Email:|BuggyJeff@gmail.com|
+|Email:|BuggyJef@gmail.com|
 |License:|[[Creative Commons Attribution-ShareAlike 2.5 License|http://creativecommons.org/licenses/by-sa/2.5/]]||
 !!Description
 when backagestage is hidden, it is replaced with a forestage - configured with a tid titled foreStageConfig, which 
@@ -25,6 +25,35 @@ needs to contain the follow type of json which defines the contents of the fores
 !Code
 ***/
 //{{{
+
+var butChooseronClick;
+//config.macros.butChooser.handler = function(place,macroName,params,wikifier,paramString,tiddler)
+butChooser=function(place,title,tip,maccros)
+{
+
+
+		butChooseronClick = function(ev)
+		{
+			var e = ev || window.event;
+			var lingo = config.views.editor.tagChooser;
+			var popup = Popup.create(this);
+			var tags = maccros.split(",");// ["<<newTiddler>>","<<newTiddler>>"];
+			if(tags.length == 0)
+				jQuery("<li/>").text(lingo.popupNone).appendTo(popup);
+			var t;
+			for(t=0; t<tags.length; t++) {
+				wikify(tags[t],createTiddlyElement(popup,"li",null,null," ",{style:"font-weight:normal; font-size:2em;"}),null,null);
+				//var tag = createTiddlyButton(createTiddlyElement(popup,"li"),tags[t],null,config.macros.butChooser.onTagClick);
+				//tag.setAttribute("tag",tags[t]);
+
+			}
+			Popup.show();
+			e.cancelBubble = true;
+			if(e.stopPropagation) e.stopPropagation();
+			return false;
+		};
+		var btn = createTiddlyButton(place,title,tip,butChooseronClick);
+};
 backstage.tiddler=tiddler;
 backstage.init = function() {
 		var cmb = config.messages.backstage;
@@ -127,6 +156,11 @@ backstage.forestage = function ()
 
 			jQuery(btn).addClass(task.action ? "backstageAction" : "backstageTask");
 			btn.setAttribute("task", taskName);
+			break;
+		case '((':
+					var tobj=jQuery.parseJSON(c.replace(/\(\(([\s\S]*)\)\)[\s\S]*/,'{$1}'));
+
+						butChooser(this.toolbar,tobj.text,tobj.tooltip,tobj.content);
 			break;
 		default:
                         alert(c);

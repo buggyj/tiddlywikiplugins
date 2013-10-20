@@ -1,25 +1,19 @@
 /***
-|Name:|RestictBackupFilesPlugin|
-|Description:|Limits number of backup files to one per Day|
+|Name:|SimplyLessBackupsPlugin|
 |Version:|1.0|
 |Date:|7-June-2013|
 |Source:||
 |Author:|BuggyJay|
-|Email:|BuggyJeff@gmail.com|
-|License:|[[Creative Commons Attribution-ShareAlike 2.5 License|http://creativecommons.org/licenses/by-sa/2.5/]]||
-
+|Email:|BuggyJay@gmail.com|
+|License:|BSD|
 !!Description
 limit the number of backup files to one a day.
-uses the configOptionsMacro to control option chkDailyBackUp
-you need to copy to the ConfigOptions tiddler
-{{{chkOneADayBackUpFile=true}}}
-!-- this is not a 'release quality plugin'
+
+set:<<option chkOneADayBackUpFile>>
 
 ***/
 //{{{
-//this can be easily extended to 'once' a month, 
-//also one a quater month (7+7+8+8) daily intevals -YYYYMM+Q1-4, or weekly -  YYYYW+ week no. 
-//(7778) for feb leap year - no need for logic - if feb just subtract 21!
+
 window.getSpecialBackupPath = function(localPath) {
 	var slash = "\\";
 	var dirPathPos = localPath.lastIndexOf("\\");
