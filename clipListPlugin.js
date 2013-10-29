@@ -48,7 +48,8 @@ config.macros.ClipList.handler = function (place,macroName,params,wikifier,param
 			if(2!=parts.length){alert("format error");return;}
 
 			tiddler.text= parts.join("");
-			store.saveTiddler(tiddler);
+			store.saveTiddler(tiddler.title,tiddler.title,tiddler.text,tiddler.modifier,tiddler.modified,tiddler.tags,tiddler.fields,true,tiddler.created,tiddler.creator);
+			autoSaveChanges(null,[tiddler]);
 			story.refreshTiddler(tiddler.title,null,true);
 
 			return(false);
@@ -70,7 +71,8 @@ config.macros.ClipList.handler = function (place,macroName,params,wikifier,param
 	
 		tid.fields.countx=""+num;
 		tid.text= newclip.replace(/\[\d*\-/,'['+num+'-')+tid.text;
-		store.saveTiddler(tid);
+
+		 store.saveTiddler(tid.title,tid.title,tid.text,tid.modifier,tid.modified,tid.tags,tid.fields,true,tid.created,tid.creator);
 		autoSaveChanges(null,[tid]);
 		story.refreshTiddler(tid.title,null,true);
         return(false);
@@ -105,7 +107,7 @@ config.commands.cancelMylTiddler={
 		}
 		//window.onClickClipList.edit =false;	
 		story.setDirty(title,false);
-		story.refreshTiddler(title,null,true);
+		//story.refreshTiddler(title,null,true);
 		return;
 	}
 };
@@ -213,7 +215,8 @@ config.formatters.push( {
 					var parts= txt.split(oldtxt);//remove target clip from present location
 					if(2!=parts.length)	tiddler.text= data+txt;//begining of list
 					else 				tiddler.text= parts.join(data+oldtxt);
-					store.saveTiddler(tiddler);
+					store.saveTiddler(tiddler.title,tiddler.title,tiddler.text,tiddler.modifier,tiddler.modified,tiddler.tags,tiddler.fields,true,tiddler.created,tiddler.creator);
+					autoSaveChanges(null,[tiddler]);
 					story.refreshTiddler(tiddler.title,null,true);
 
 					return(false);
@@ -254,7 +257,7 @@ window.onClickClipList=function(e)
 		//window.onClickClipList.edit =false;
 	    tiddom.setAttribute("num",0);
 
-		story.refreshTiddler(tiddom.getAttribute("tiddler"),null,true);
+		//story.refreshTiddler(tiddom.getAttribute("tiddler"),null,true);
 		story.setDirty(title,false);
 		return;
 	}
@@ -394,7 +397,7 @@ config.macros.drophere.handler= function(place, macroName,params,wikifier,paramS
 					tid.fields.countx=""+num;
 					
 					//tiddler.text= parts[0].substr(0,index1)+parts[1].substr(index2);
-					store.saveTiddler(tid);
+					store.saveTiddler(tid.title,tid.title,tid.text,tid.modifier,tid.modified,tid.tags,tid.fields,true,tid.created,tid.creator);
 					autoSaveChanges(null,[tid]);
 					story.refreshTiddler(tid.title,null,true);
 				}

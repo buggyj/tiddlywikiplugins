@@ -24,7 +24,7 @@ config.macros.backslider.onClickSlider = function(ev)
 	else
 		n.style.display = isOpen ? "none" : "block";
 	config.options[cookie] = !isOpen;
-	saveOption(cookie);
+	saveOptionCookie(cookie);
 	return false;
 };
 

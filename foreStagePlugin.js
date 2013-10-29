@@ -27,25 +27,23 @@ needs to contain the follow type of json which defines the contents of the fores
 //{{{
 
 var butChooseronClick;
-//config.macros.butChooser.handler = function(place,macroName,params,wikifier,paramString,tiddler)
+
 butChooser=function(place,title,tip,maccros)
-{
+{ 
 
-
+	var popupmy;
 		butChooseronClick = function(ev)
 		{
 			var e = ev || window.event;
 			var lingo = config.views.editor.tagChooser;
-			var popup = Popup.create(this);
+
+			popupmy = Popup.create(this);
 			var tags = maccros.split(",");// ["<<newTiddler>>","<<newTiddler>>"];
 			if(tags.length == 0)
-				jQuery("<li/>").text(lingo.popupNone).appendTo(popup);
+				document.getElementById("<li/>").text(lingo.popupNone).appendTo(popup);
 			var t;
 			for(t=0; t<tags.length; t++) {
-				wikify(tags[t],createTiddlyElement(popup,"li",null,null," ",{style:"font-weight:normal; font-size:2em;"}),null,null);
-				//var tag = createTiddlyButton(createTiddlyElement(popup,"li"),tags[t],null,config.macros.butChooser.onTagClick);
-				//tag.setAttribute("tag",tags[t]);
-
+				wikify(tags[t],createTiddlyElement(popupmy,"li",null,null," ",{style:"font-weight:normal; font-size:2em;"}),null,null);
 			}
 			Popup.show();
 			e.cancelBubble = true;
@@ -56,12 +54,14 @@ butChooser=function(place,title,tip,maccros)
 };
 backstage.tiddler=tiddler;
 backstage.init = function() {
+	backstage.oldclick =backstage.onClickTab;
+	backstage.onClickTab =function (e) {backstage.toolbar.panelfresh=true;backstage.switchTab(this.getAttribute("task"));}
 		var cmb = config.messages.backstage;
 		this.area = document.getElementById("backstageArea");
-		this.toolbar = jQuery("#backstageToolbar").empty()[0];
+		this.toolbar = document.getElementById("backstageToolbar");
 		//need a way to disable backstage by have these removed
 		if(true) {
-			this.button = jQuery("#backstageButton").empty()[0];
+			this.button = document.getElementById("backstageButton");
 			this.button.style.display = "block";
 			var t = "foreStage" + " "+glyph("bentArrowLeft");
 			this.showButton = createTiddlyButton(this.button,t,cmb.open.tooltip,
@@ -74,7 +74,9 @@ backstage.init = function() {
 		this.panel = document.getElementById("backstagePanel");
 		this.panelFooter = createTiddlyElement(this.panel,"div",null,"backstagePanelFooter");
 		this.panelBody = createTiddlyElement(this.panel,"div",null,"backstagePanelBody");
-		this.cloak.onmousedown = function(e) {backstage.switchTab(null);};
+		this.cloak.onmousedown = function(e) { backstage.switchTab(null);};
+		this.toolbar.onmouseup = function(e) { backstage.switchTab(null);}
+
 		this.content = document.getElementById("contentWrapper");
                 this.numBackTabs=config.backstageTasks.length;/*
 		if(config.options.chkBackstage) 
@@ -88,41 +90,40 @@ backstage.init = function() {
 		
 backstage.show= function() {
 
-		this.toolbar = jQuery("#backstageToolbar").empty()[0];
+
+		this.toolbar.innerHTML ="";
 		this.forestage();
 		this.area.style.display = "block";
-
-		jQuery(this.showButton).hide();
-		jQuery(this.hideButton).show();
+		this.showButton.style.display = "none";
+		this.hideButton.style.display = "block";
 		config.options.chkBackstage = true;
-		saveOption("chkBackstage");
-		jQuery(this.content).addClass("backstageVisible");
+		saveOptionCookie("chkBackstage");
+		addClass(this.content,"backstageVisible"); 
 	};
 
 backstage.hide =function() {
-		this.toolbar = jQuery("#backstageToolbar").empty()[0];
+		this.toolbar.innerHTML ="";
 		for(t=0; t<this.numBackTabs; t++) {
 			var taskName = config.backstageTasks[t];
 			var task = config.tasks[taskName];
 			var handler = task.action ? this.onClickCommand : this.onClickTab;
 			var text = task.text + (task.action ? "" : glyph("downTriangle"));
 			var btn = createTiddlyButton(this.toolbar,text,task.tooltip,handler,"backstageTab");
-			jQuery(btn).addClass(task.action ? "backstageAction" : "backstageTask");
+			addClass(btn,task.action ? "backstageAction" : "backstageTask");
+					btn.onmouseup = function(e) { 			e.cancelBubble = true;
+					if(e.stopPropagation) e.stopPropagation();
+					return false;}
 			btn.setAttribute("task", taskName);
 			}
 			this.showButton.style.display = "block";
 			this.hideButton.style.display = "none";
 			config.options.chkBackstage = false;
-			saveOption("chkBackstage");
-			jQuery(this.content).removeClass("backstageVisible");	
-
+			saveOptionCookie("chkBackstage");	
+			removeClass(this.content,"backstageVisible");	
 	};
 backstage.forestage = function ()
 {
 	var t;
-	//need an alternative config for web site
-	// if (website) var configfile ="WebforeStageConfig";
-	//else
 	var configfile ="foreStageConfig";
 	if (null==store.getTiddlerText(configfile)) return;
 	var tabs= store.getTiddlerText(configfile).replace(/[^\{]*\{\{\{([\s\S]*)\}\}\}/mg,"$1").split(';');
@@ -143,7 +144,7 @@ backstage.forestage = function ()
 						wikify(c,this.toolbar,null,null);
 			break;
 		case '{{':
-			var tobj=jQuery.parseJSON(c.replace(/\{([\s\S]*)\}[\s\S]*/,"$1"));
+			var tobj=JSON.parse(c.replace(/\{([\s\S]*)\}[\s\S]*/,"$1"));
 			if (config.tasks[tobj.text] == null) {
 				config.tasks[tobj.text] =tobj;
 				config.backstageTasks.push(tobj.text);
@@ -153,12 +154,14 @@ backstage.forestage = function ()
 			var handler = task.action ? this.onClickCommand : this.onClickTab;
 			var text = task.text + (task.action ? "" : glyph("downTriangle"));
 			var btn = createTiddlyButton(this.toolbar,text,task.tooltip,handler);
-
-			jQuery(btn).addClass(task.action ? "backstageAction" : "backstageTask");
+			addClass(btn,task.action ? "backstageAction" : "backstageTask");
+					btn.onmouseup = function(e) { 			e.cancelBubble = true;
+					if(e.stopPropagation) e.stopPropagation();
+					return false;}
 			btn.setAttribute("task", taskName);
 			break;
 		case '((':
-					var tobj=jQuery.parseJSON(c.replace(/\(\(([\s\S]*)\)\)[\s\S]*/,'{$1}'));
+					var tobj=JSON.parse(c.replace(/\(\(([\s\S]*)\)\)[\s\S]*/,'{$1}'));
 
 						butChooser(this.toolbar,tobj.text,tobj.tooltip,tobj.content);
 			break;
@@ -176,9 +179,6 @@ if (backstage.currTabName) backstage.switchTab(null);
 	return onClickTiddlerLink_orig(ev);
 }
 //}}}
-
-
-
 /***
 !Stylesheet
 #backstageToolbar .button {padding:0.7em 0.4em;}
