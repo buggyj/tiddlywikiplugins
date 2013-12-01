@@ -2,9 +2,10 @@
 |Name:|foreStagePlubgin|
 |Description:|Adds TiddlyWiki elements to the flip side of the backStage bar|
 |Version:|1.0|
-|Date:|7-June-2013|
+|Date:|27-11-2013|
+|CoreVersion|2.4.3|
 |Source:||
-|Author:|BuggyJay|
+|Author:|BJ|
 |Email:|BuggyJef@gmail.com|
 |License:|[[Creative Commons Attribution-ShareAlike 2.5 License|http://creativecommons.org/licenses/by-sa/2.5/]]||
 !!Description
@@ -14,13 +15,19 @@ needs to contain the follow type of json which defines the contents of the fores
 [[MyTiddler]], //link to tiddler 'MyTiddler'
 <<MyMacro>>, // embed macro in  bar e.g <<search>>
 ""MyText"",  embed text in bar
-//or a drop down can  be included:-
+//or a drop down area can be included:-
 {{
 	"text": "Start",
 	"tooltip":"Main Menu",
 	"content": "<<tiddler MainMenu>>"
 }} 
+// or a dropdown list of macros
 
+((
+	"text": "new",
+	"tooltip": "new things",
+	"content": "<<newTiddler >><<newClipList fields:'template:ClipListPlugin##'>>"
+));
 }}}
 !Code
 ***/
@@ -161,12 +168,11 @@ backstage.forestage = function ()
 			btn.setAttribute("task", taskName);
 			break;
 		case '((':
-					var tobj=JSON.parse(c.replace(/\(\(([\s\S]*)\)\)[\s\S]*/,'{$1}'));
-
-						butChooser(this.toolbar,tobj.text,tobj.tooltip,tobj.content);
+			var tobj=JSON.parse(c.replace(/\(\(([\s\S]*)\)\)[\s\S]*/,'{$1}'));
+			butChooser(this.toolbar,tobj.text,tobj.tooltip,tobj.content);
 			break;
 		default:
-                        alert(c);
+            alert(c);
 			break;
 		};
 	};

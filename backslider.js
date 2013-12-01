@@ -2,9 +2,10 @@
 |Name:|foreStagePlubgin|
 |Description:|Adds TiddlyWiki elements to the flip side of the backStage bar|
 |Version:|1.0|
-|Date:|7-June-2013|
+|Date:|27-11-2013|
 |Source:||
-|Author:|BuggyJay|
+|CoreVersion|2.4.3|
+|Author:|BJ|
 |Email:|BuggyJay@gmail.com|
 |License:|[[Creative Commons Attribution-ShareAlike 2.5 License|http://creativecommons.org/licenses/by-sa/2.5/]]|
 !!Description

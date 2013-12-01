@@ -2,8 +2,10 @@
 |Name|ClipListPlugin|
 |Version|1.0|
 |Author|BJ|
+|Date:|26-11-2013|
 |License|[[Creative Commons Attribution-ShareAlike 2.5 License|http://creativecommons.org/licenses/by-sa/2.5/]]|
 |Type|plugin|
+|CoreVersion|2.4.3|
 |Requires|http://www.TiddlyTools.com/#TaggedTemplateTweak|
 |Overrides||
 |Description|shows clips from a folded list|
@@ -13,9 +15,21 @@ Create and manage lists of clips - for use with tiddlyclip
 !!!!!Code
 ***/
 //{{{
-//version.extensions.ClipListPlugin= {major: 1, minor: 1, revision: 1, date: new Date(2013,09,15)};
-
+//version.extensions.ClipListPlugin= {major: 1, minor: 1, revision: 1, date: new Date(2013,11,26)};
+var xxx1;//BJ hack that allows clips to be render inside slider - remembers location of slider
 config.macros.ClipList = {};
+config.macros.ClipList.drophandler = function (contents, droptypes) {
+	var i, parts = contents.split("://");
+	if (parts.length == 1) { alert("I don't know what you dropped"+contents); return ['error',contents]; }
+	var part =[];
+	part[0] = parts.shift();
+	part[1] = parts.join("://");
+	for (i = 0; i < droptypes.length; i++) {
+		if (part[0] == droptypes[i]) return part;
+	}
+	alert("I don't know what to do with a "+part[0]+" type");
+	return ['unsupported', part[1]];
+}
 config.macros.ClipList.handler = function (place,macroName,params,wikifier,paramString,tiddler){ 
     // this will run when macro is called from a tiddler
     var tidShowLabelDl= 'delete clip';
@@ -41,11 +55,12 @@ config.macros.ClipList.handler = function (place,macroName,params,wikifier,param
 			e.cancelBubble = true;
 			if (e.stopPropagation)
 			   e.stopPropagation();
-			var data=e.dataTransfer.getData("Text");
-			if(data.substr(0,2)!="ᏜᏜ"){alert("format error");return;}
+			var dropcontent = config.macros.ClipList.drophandler(e.dataTransfer.getData("Text"),["clip"]);
+			if (dropcontent[0]=='error' || dropcontent[0]=='unsupported') return;
+			if(dropcontent[1].substr(0,2)!="ᏜᏜ"){alert("format error");return;}
 			var txt=tiddler.text;
-			var parts= txt.split(data);
-			if(2!=parts.length){alert("format error");return;}
+			var parts= txt.split(dropcontent[1]);
+			if(2!=parts.length){alert("internal error");return;}
 
 			tiddler.text= parts.join("");
 			store.saveTiddler(tiddler.title,tiddler.title,tiddler.text,tiddler.modifier,tiddler.modified,tiddler.tags,tiddler.fields,true,tiddler.created,tiddler.creator);
@@ -107,7 +122,7 @@ config.commands.cancelMylTiddler={
 		}
 		//window.onClickClipList.edit =false;	
 		story.setDirty(title,false);
-		//story.refreshTiddler(title,null,true);
+		story.refreshTiddler(title,null,true);
 		return;
 	}
 };
@@ -128,25 +143,42 @@ config.formatters.push( {
 							  
 				var soliton=lookaheadMatch[2];
 				var label=lookaheadMatch[4];		
+				var placeold=w.output;
+				var place;
+				// location for rendering button and panel				
 
-				// location for rendering button and panel
-				var place=w.output;
 				//var show="none"; 
 				var title='no title';
-				var tiddom=story.findContainingTiddler(place);
+				var tiddom=story.findContainingTiddler(placeold);
 				var titleis = tiddom.getAttribute("tiddler");
 				var tiddler = store.getTiddler(titleis);
-				var num = place.getAttribute("num");
-				if (!num) num=1;
-				else num++;
+
+				var num = placeold.getAttribute("num");
+				if (!num) {
+					num=1;
+					{
+						place = config.macros.slider.createSlider(placeold,null,"From "+num);
+						xxx1=place;
+					}
+				}
+				else {
+					num++;
+					if (Math.floor((num)/10 ) * 10==num) {
+						place = config.macros.slider.createSlider(placeold,null,"From "+num);
+						xxx1=place;
+					}
+					else place = xxx1;
+				}
+				placeold.setAttribute("num",num);		
+					
 				var part3=label.split("-")
 				part3.shift();
 				label='['+num+'-'+part3.join("-");//strip leading number
 				if (label) title=label.trim().slice(1,-1);
 
-				place.setAttribute("num",num);
+
 				// create the button
-				var clipbar=createTiddlyElement(place,"h1",null,null,null);
+				var clipbar=createTiddlyElement(place,"div",null,"annotation",null);
 				//var clipbar=createTiddlyElement(place,"div",null,null," ",{style:"font-size:12pt;line-height:12px"});
 				var container=createTiddlyElement(clipbar,"span",null,null,null);
 				var btn = createTiddlyElement(container,"a",null,null,title);//buttonClass,title);
@@ -196,14 +228,15 @@ config.formatters.push( {
 
 				btn.ondrop=	function(e)
 				{
-					if (!e) var e = window.event;			
-					var data=e.dataTransfer.getData("Text");
-					if(data.substr(0,2)!="ᏜᏜ"){alert("format error1"+data);return;}
+					if (!e) var e = window.event;
+					var dropcontent = config.macros.ClipList.drophandler(e.dataTransfer.getData("Text"),["clip"]);
+					if (dropcontent[0]=='error' || dropcontent[0]=='unsupported') return;
+					if(dropcontent[1].substr(0,2)!="ᏜᏜ"){alert("format error");return;}
 					var txt=tiddler.text;
-					var parts= txt.split(data);//remove moving clip from present location
+					var parts= txt.split(dropcontent[1]);//remove moving clip from present location
 					if(2!=parts.length) {
-						if (txt.substr(0, data.length)!=data) return;//not first clip in this list
-						else txt= txt.substr(data.length); //remove first item
+						if (txt.substr(0, dropcontent[1].length)!=dropcontent[1]) return;//not first clip in this list
+						else txt= txt.substr(dropcontent[1].length); //remove first item
 					} else {
 						txt= parts.join("");					
 					}
@@ -213,8 +246,8 @@ config.formatters.push( {
 					//now splice in the moving clip
 					var oldtxt =btn.editpanel.getAttribute("clipsrc");
 					var parts= txt.split(oldtxt);//remove target clip from present location
-					if(2!=parts.length)	tiddler.text= data+txt;//begining of list
-					else 				tiddler.text= parts.join(data+oldtxt);
+					if(2!=parts.length)	tiddler.text= dropcontent[1]+txt;//begining of list
+					else 				tiddler.text= parts.join(dropcontent[1]+oldtxt);
 					store.saveTiddler(tiddler.title,tiddler.title,tiddler.text,tiddler.modifier,tiddler.modified,tiddler.tags,tiddler.fields,true,tiddler.created,tiddler.creator);
 					autoSaveChanges(null,[tiddler]);
 					story.refreshTiddler(tiddler.title,null,true);
@@ -229,7 +262,7 @@ config.formatters.push( {
 
 function drag(ev)
 {
-ev.dataTransfer.setData("Text",ev.target.editpanel.getAttribute("clipsrc"));
+ev.dataTransfer.setData("Text","clip://"+ev.target.editpanel.getAttribute("clipsrc"));
 }
 //}}}
 //{{{
@@ -378,10 +411,11 @@ config.macros.drophere.handler= function(place, macroName,params,wikifier,paramS
 				tiddom.ondrop=	function(ev)
 				{
 					ev.preventDefault();
-					var data=ev.dataTransfer.getData("Text");//alert(data);
+					var dropcontent = config.macros.ClipList.drophandler(ev.dataTransfer.getData("Text"),["clip"]);
+					if (dropcontent[0]=='error' || dropcontent[0]=='unsupported') return;
+					if(dropcontent[1].substr(0,4)!="ᏜᏜᏜᏜ"){alert("format error");return;}
 					var tid = store.getTiddler(titleis);;//alert(titleis);
-					if(data.substr(0,4)!="ᏜᏜᏜᏜ"){alert("format error");return;}
-					var parts= tid.text.split(data);
+					var parts= tid.text.split(dropcontent[1]);
 					if(1!=parts.length)return;
 					//var txt=tiddler.text;
 					//if(data.substr(2,2)!="ᏜᏜ") data = "ᏜᏜ"+data;
@@ -389,7 +423,7 @@ config.macros.drophere.handler= function(place, macroName,params,wikifier,paramS
 					var num = tid.fields.countx;
 					if (!num) num=1;
 					else num++;
-					data=data.replace(/\[\d*\-/,'['+num+'-');//alert(data);
+					var data=dropcontent[1].replace(/\[\d*\-/,'['+num+'-');//alert(data);
 					//var part3=label.split("-")
 					//part3.shift();
 					//label='['+num+part3.join("");//strip leading number
@@ -505,7 +539,7 @@ drophere
 
 !EditTemplate2
 *<!--{{{-->
-<div  macro='toolbar +saveTiddler -cancelMylTiddler deleteTiddler'></div>
+<div  macro='toolbar +saveTiddler -cancelMylTiddler'></div>
 <div macro='annotations'></div>
 <div class='editor' macro='myedit clipsrc'></div>
 <!--}}}-->

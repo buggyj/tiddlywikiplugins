@@ -41,7 +41,7 @@ if (config.macros.easyFormatting==undefined) {
 						w.subWikifyTerm(e,/(\}\}\})/mg);
 						break;
 					}
-					var style, align = 'left', temp = list[1].split('align:');
+					var style, align = null, temp = list[1].split('align:');
 					if (temp.length > 1){ 
 						var part1 =temp[0].length;
 						style= temp[0]; //part upto first align
@@ -52,8 +52,12 @@ if (config.macros.easyFormatting==undefined) {
 							case 'just': align = 'justify'; style += list[1].substring(part1+14, list[1].length); break;						
 						}
 					} else style = list[1];
-					//alert (align+' '+style+' '+temp[1]);				     
-					e = createTiddlyElement(w.output,lookaheadMatch[2] == "\n" ? "div" : "span",null,list[0],null,{align:align,style:style});
+					//alert (align+' '+style+' '+temp[1]);	
+					if (!!align)			     
+						e = createTiddlyElement(w.output,lookaheadMatch[2] == "\n" ? "div" : "span",null,list[0],null,{align:align,style:style});
+					else
+						e = createTiddlyElement(w.output,lookaheadMatch[2] == "\n" ? "div" : "span",null,list[0],null,{style:style});
+					
 					w.subWikifyTerm(e,/(\}\}\})/mg);
 				}
 				break;
