@@ -361,18 +361,29 @@ Story.prototype.gatherSaveFields = function(e,fields){
 			var newVal = config.macros.myedit.gather(e,fields);
 			if (newVal) fields[f] = newVal;
 		} else
-		this.old.gatherSaveFields(e, fields);
+		Story.prototype.old.gatherSaveFields(e, fields);
 	}
 }
 config.macros.myedit.gather = function(e,fields)
 {
+	function replacelinebreakshtml(text) {
+		var segments = text.split(/(\<\/?pre\>)/);
+		var result = '';
+		for (var i = 0; i <segments.length; i++){
+			if (i %4 ==2) result += segments[i];
+			else result +=segments[i].replace(/(\r\n|\n|\r)/gm,"");
+		}
+		return result;
+	}
 	if(e && e.getAttribute) {
 		var f = e.getAttribute("edit");
-		
+		var ck =e.getAttribute("name");
 		if (!!e.getAttribute("editpanel")) {
 			if(f) {if (f=='text') {
-				var temp=e.value.replace(/\r/mg,"");
-				if (temp.substr(temp.length-1)!='\n') temp = temp+'\n';
+				var temp;
+				if(!!ck) temp="<html>"+replacelinebreakshtml(CKEDITOR.instances[ck].getData())+"</html>" ;
+				else temp=e.value.replace(/\r/mg,"");
+				if (temp.substr(temp.length-1)!='\n') temp = temp+'\n';//BJ FIXME
 				fields['text'] +=temp;
 			} else
 				fields[f] +=e.value.replace(/\r/mg,"");
@@ -383,13 +394,15 @@ config.macros.myedit.gather = function(e,fields)
 				fields['text'] +=temp;
 			}
 		} else if(f)
-			if (f=='text') {
-				var temp=e.value.replace(/\r/mg,"");
+			if (f=='text') { 
+				var temp;
+				if(!!ck) temp="<html>"+replacelinebreakshtml(CKEDITOR.instances[ck].getData())+"</html>" ;
+				else temp=e.value.replace(/\r/mg,"");		
 				if (temp.substr(temp.length-1)!='\n') temp = temp+'\n';
 				fields['text'] +=temp;
 			} 
 			else if(f=='nonedit') fields['text'] +=e.getAttribute("clipsrc");
-			else  fields[f] = e.value.replace(/\r/mg,"");
+			else  {alert("text----");fields[f] = e.value.replace(/\r/mg,"");}
 			
 		if(e.hasChildNodes()) {
 			var t,c = e.childNodes;
@@ -439,7 +452,7 @@ config.macros.drophere.handler= function(place, macroName,params,wikifier,paramS
 
 config.macros.myedit.handler= function(place, macroName,params,wikifier,paramString,tiddler)
 {
-	var field = 'text'
+	var field = 'text';
 	var rows =  0;
 	var editString =  place.parentNode.getAttribute( "clipsrc");//alert(place.parentNode.getAttribute("class"));
 	place.parentNode.setAttribute("clipsrc","");//remove nonedit string to stop it being gathered
@@ -473,10 +486,11 @@ config.macros.myedit.handler= function(place, macroName,params,wikifier,paramStr
 			place.appendChild(e);
 			e.setAttribute("edit",field);
 			 wrap=createTiddlyElement(null,"div");
-			wrap.setAttribute("clipsrc",postscript+'!/%%/');//alert(postscript);
+			wrap.setAttribute("clipsrc",postscript+'!/%%/'+'\n');//alert(postscript);
 		    wrap.setAttribute("edit",'nonedit');
 		    place.appendChild(wrap);
-		}{
+		}
+		if (false){
 			var wrapper1 = createTiddlyElement(null,"fieldset",null,"fieldsetFix");
 			var wrapper2 = createTiddlyElement(wrapper1,"div");
 			e = createTiddlyElement(wrapper2,"textarea");
@@ -494,6 +508,29 @@ config.macros.myedit.handler= function(place, macroName,params,wikifier,paramStr
 			place.appendChild(wrapper1);
 			//place.parentNode.editPanel.innerHTML=	store.getTiddlerText("ClipEditTemplate");
 		}	
+		else {
+			var wrapper1 = createTiddlyElement(null,"fieldset",null,"viewer");
+			var wrapper2 = createTiddlyElement(wrapper1,"div");
+			e = createTiddlyElement(wrapper2,"textarea");
+			e.value = v =   parts[1];
+			rows = rows || 10;
+			var lines = v.match(/\n/mg);
+			var maxLines = Math.max(parseInt(config.options.txtMaxEditRows,10),5);
+			if(lines != null && lines.length > rows)
+				rows = lines.length + 5;
+			rows = Math.min(rows,maxLines);
+			e.setAttribute("rows",rows);
+			e.setAttribute("edit",field);
+			var ck ="editor"+ Math.random();
+			e.setAttribute("name",ck);
+			e.setAttribute("id",ck);
+			
+			place.appendChild(wrapper1);
+			if (!!config.options.chkNotWysiwyg) 
+				CKEDITOR.replace(ck,{skin : 'moono'});
+			else
+				CKEDITOR.replace(ck,{ extraPlugins : 'divarea', skin : 'moonodiv'});
+		}
 		if(tiddler.isReadOnly()) {
 			e.setAttribute("readOnly","readOnly");
 			jQuery(e).addClass("readOnly");

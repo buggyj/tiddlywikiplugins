@@ -1,3 +1,23 @@
+/***
+|Name|ckeditorplugin|
+|Version|1.0|
+|Author|BJ|
+|Date:|12-12-2013|
+|License|[[Creative Commons Attribution-ShareAlike 2.5 License|http://creativecommons.org/licenses/by-sa/2.5/]]|
+|Type|plugin|
+|Overrides||
+|CoreVersions|2.6|
+!Description
+
+!!!!!Configuration
+<<<
+for real wysiwyg, you can set this option (requires moonodiv skin) :
+><<option chkNotWysiwyg>> real wysiwyg
+which can also be 'hard coded' into your document by adding the following to a tiddler, tagged with <<tag systemConfig>>
+>{{{config.options.chkNotWysiwyg=true;}}}
+<<<
+!!!!!Code
+***/
 /*{{{*/
 if (typeof CKEDITOR != 'undefined')   {
 //CKEDITOR.config.bodyClass = 'contents';
@@ -49,18 +69,27 @@ Story.prototype.notckeditor.gatherSaveFields=Story.prototype.gatherSaveFields;
 
 Story.prototype.gatherSaveFields = function(e,fields)
 {
+	function replacelinebreakshtml(text) {
+		var segments = text.split(/(\<\/?pre\>)/);
+		var result = '';
+		for (var i = 0; i <segments.length; i++){
+			if (i %4 ==2) result += segments[i];
+			else result +=segments[i].replace(/(\r\n|\n|\r)/gm,"");
+		}
+		return result;
+	}
 	if(e && e.getAttribute) {
 		var tiddom=story.findContainingTiddler(e);
 		var tid =store.getTiddler(tiddom.getAttribute("tiddler"));
 
 		if  (!tid || !tid.isTagged("CKEditor"))
-			this.notckeditor.gatherSaveFields(e,fields);
+			return Story.prototype.notckeditor.gatherSaveFields(e,fields);
 		   
 		var f = e.getAttribute("edit");
 		if(f) {
 			var g = e.getAttribute("name");
 			if (!!g) {
-				fields[f]="<html>"+CKEDITOR.instances[g].getData()+"</html>" ;
+				fields[f]="<html>"+replacelinebreakshtml(CKEDITOR.instances[g].getData())+"</html>" ;
 			}
 			else
 				fields[f] = e.value.replace(/\r/mg,"");
@@ -97,7 +126,7 @@ return config.macros.edit.notckeditor.handler(place,macroName,params,wikifier,pa
 			e.value = store.getValue(tiddler,field) || defVal;
 			place.appendChild(e);
 		} else {
-			var wrapper1 = createTiddlyElement(null,"fieldset",null,"fieldsetFix");
+			var wrapper1 = createTiddlyElement(null,"fieldset",null,"viewer");
 			var wrapper2 = createTiddlyElement(wrapper1,"div");
 			e = createTiddlyElement(wrapper2,"textarea");
 			e.value = v = store.getValue(tiddler,field) || defVal;
@@ -114,7 +143,10 @@ return config.macros.edit.notckeditor.handler(place,macroName,params,wikifier,pa
 			e.setAttribute("id",ck);
 			
 			place.appendChild(wrapper1);
-			CKEDITOR.replace(ck,{ extraPlugins : 'divarea' });
+			if (!!config.options.chkNotWysiwyg) 
+				CKEDITOR.replace(ck,{skin : 'moono'});
+			else
+				CKEDITOR.replace(ck,{ extraPlugins : 'divarea', skin : 'moonodiv'});
 		}
 		if(tiddler.isReadOnly()) {
 			e.setAttribute("readOnly","readOnly");
