@@ -1,8 +1,8 @@
 /***
-|Name|ClipListPlugin|
+|Name|ClipFolderPlugin|
 |Version|1.0|
 |Author|BJ|
-|Date:|26-11-2013|
+|Date:|12-12-2013|
 |License|[[Creative Commons Attribution-ShareAlike 2.5 License|http://creativecommons.org/licenses/by-sa/2.5/]]|
 |Type|plugin|
 |CoreVersion|2.4.3|
@@ -11,7 +11,7 @@
 |Description|shows clips from a folded list|
 Idea started from NestedSlidersPlugin - http://www.TiddlyTools.com/#NestedSlidersPlugin
 !Description
-Create and manage lists of clips - for use with tiddlyclip
+Create and manage folders of  clips - for use with tiddlyclip
 !!!!!Code
 ***/
 //{{{

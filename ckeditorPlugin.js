@@ -1,4 +1,3 @@
-/***
 |Name|ckeditorplugin|
 |Version|1.0|
 |Author|BJ|
@@ -7,7 +6,6 @@
 |Type|plugin|
 |Overrides||
 |CoreVersions|2.6|
-!Description
 
 !!!!!Configuration
 <<<
