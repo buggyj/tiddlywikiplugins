@@ -68,10 +68,11 @@ Story.prototype.notckeditor.gatherSaveFields=Story.prototype.gatherSaveFields;
 Story.prototype.gatherSaveFields = function(e,fields)
 {
 	function replacelinebreakshtml(text) {
+		//unfortunately ckeditor still puts in some line breaks inspite of being told not too
 		var segments = text.split(/(\<\/?pre\>)/);
 		var result = '';
 		for (var i = 0; i <segments.length; i++){
-			if (i %4 ==2) result += segments[i];
+			if (i %4 ==2) result += segments[i];//leave preformatted text in peace
 			else result +=segments[i].replace(/(\r\n|\n|\r)/gm,"");
 		}
 		return result;
