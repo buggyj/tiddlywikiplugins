@@ -16,6 +16,7 @@ Create and manage folders of  clips - for use with tiddlyclip
 ***/
 //{{{
 //version.extensions.ClipListPlugin= {major: 1, minor: 1, revision: 1, date: new Date(2013,11,26)};
+
 var xxx1;//BJ hack that allows clips to be render inside slider - remembers location of slider
 config.macros.ClipList = {};
 config.macros.ClipList.drophandler = function (contents, droptypes) {
@@ -127,7 +128,8 @@ config.commands.cancelMylTiddler={
 	}
 };
 
-config.formatters.push( {
+var cliplistformatter =
+ {
 	name: "ClipList",
 	match: "\\n?\\Ꮬ{2}",
 	terminator: "\\s*\\Ꮻ{3}\\n?",
@@ -188,7 +190,7 @@ config.formatters.push( {
 				btn.innerHTML=title; 
 				btn.setAttribute("draggable","true");
 				btn.setAttribute("ondragstart","drag(event)");
-				// create slider panel
+				// create slider display panel
 				var panelClass="sliderPanel";
 				var panel=createTiddlyElement(place,"div",null,panelClass,null);
 				panel.button = btn; // so the slider panel know which button it belongs to
@@ -202,7 +204,6 @@ config.formatters.push( {
 
 				var editpanel=createTiddlyElement(place,"div",null,panelClass,null);
 				editpanel.setAttribute("soliton","true");
-
 				editpanel.setAttribute("editpanel","true");
 				editpanel.style.display = "none"
 				editpanel.button = editbutton;
@@ -211,6 +212,7 @@ config.formatters.push( {
 				w.nextMatch = lookaheadMatch.index + lookaheadMatch[0].length;
 				w.subWikify(panel,this.match);
 				
+				//copy source into edit panel
                 var src = w.source.substring(start,w.nextMatch);
 
                 if  (src.slice(src.length-2)=='ᏜᏜ') {
@@ -257,8 +259,83 @@ config.formatters.push( {
 
 			}
 		}
+	};
+(function ()
+{
+	var myformatter =  [];
+	var requiredFormatter = {
+		ActiveFolder:{ 
+			table:true, 		heading:true, 		list:true, 			quoteByBlock:true,	
+			quoteByLine:true, 	rule:true,  		monospacedByLine:true, wikifyComment:true,
+			macro:true, 		prettyLink:true, 	wikiLink:true, 		    urlLink:true, 		
+			image:true, 		html:true, 			commentByBlock:true,	characterFormat:true, 
+			customFormat:true, mdash:true, 		lineBreak:true, 		rawText:true, 	
+			htmlEntitiesEncoding:true }
 	}
-)
+    var i;
+
+	for (tagName in requiredFormatter){
+		myformatter =  [];
+		for ( i=0; i<config.formatters.length; i++)  
+			if (requiredFormatter[tagName][config.formatters[i].name]===true) {//value from above table
+				  myformatter.push(config.formatters[i]);
+			};
+		 myformatter.push(cliplistformatter);	
+		var parser = new Formatter(myformatter);
+		parser.formatTag= tagName;//tag tiddlers with this
+		parser.format= tagName;
+		config.parsers[tagName]=parser; 
+	}    
+	return;
+	
+function cloneFormatter(formatter) {
+	var oldhtmlformatter = {};
+	for (var m in formatter) oldhtmlformatter[m] = formatter[m];
+	return oldhtmlformatter;
+}	       
+})();
+var cliplistflatformatter =
+
+ {
+	name: "ClipList",
+	match: "\\n?\\Ꮬ{2}",
+	terminator: "\\s*\\Ꮻ{3}\\n?",
+	lookahead: "\\n?\\Ꮬ{2}(\\Ꮬ{2})?(\\*)?(\\@)?(\\[[^\\]]*\\])?",
+	handler: function(w)
+		{
+			 var start = w.matchStart;
+			 var lookaheadRegExp = new RegExp(this.lookahead,"mg");
+			lookaheadRegExp.lastIndex = w.matchStart;			//alert(w.tiddler.text.substring(w.matchStart,w.matchStart+20)+w.source.substring(w.matchStart,w.matchStart+20));
+			var lookaheadMatch = lookaheadRegExp.exec(w.source);
+			if(lookaheadMatch && lookaheadMatch.index == w.matchStart)
+			{
+							  
+				var soliton=lookaheadMatch[2];
+				var label=lookaheadMatch[4];		
+				var placeold=w.output;
+				var noplace;
+				// location for rendering button and panel				
+
+				//var show="none"; 
+				var title='no title';
+				var tiddom=story.findContainingTiddler(placeold);
+				var titleis = tiddom.getAttribute("tiddler");
+				var tiddler = store.getTiddler(titleis);
+		
+					
+				var part3=label.split("-")
+				part3.shift();
+				label=part3.join("-");//strip leading number
+				if (label) title=label.trim().slice(0,-1);
+
+
+				//wikify !+title here
+			    createTiddlyElement(place,"div",null,"annotation",null).innerHTML = title;
+				w.nextMatch=w.source.indexOf("!/%",lookaheadMatch.index+lookaheadMatch[0].length);
+			}
+		}
+	};
+config.formatters.push(cliplistflatformatter);
 
 function drag(ev)
 {
