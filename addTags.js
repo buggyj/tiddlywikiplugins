@@ -4,8 +4,8 @@
 |Date:|26-11-2013|
 |Source:||
 |CoreVersion|2.4.3|
-|Author:|BuggyJay|
-|Email:|BuggyJay@gmail.com|
+|Author:|BJ|
+|Email:|BuggyJef@gmail.com|
 |License:|BSD|
 !!Description
 comand version of add tags - no need to edit tiddler
