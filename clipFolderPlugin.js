@@ -2,10 +2,10 @@
 |Name|ClipFolderPlugin|
 |Version|1.0|
 |Author|BJ|
-|Date:|12-12-2013|
+|Date:|14-12-2013|
 |License|[[Creative Commons Attribution-ShareAlike 2.5 License|http://creativecommons.org/licenses/by-sa/2.5/]]|
 |Type|plugin|
-|CoreVersion|2.4.3|
+|CoreVersion|2.5|
 |Requires|http://www.TiddlyTools.com/#TaggedTemplateTweak|
 |Overrides||
 |Description|shows clips from a folded list|
@@ -15,7 +15,7 @@ Create and manage folders of  clips - for use with tiddlyclip
 !!!!!Code
 ***/
 //{{{
-//version.extensions.ClipListPlugin= {major: 1, minor: 1, revision: 1, date: new Date(2013,11,26)};
+//version.extensions.ClipFolderPlugin= {major: 1, minor: 1, revision: 1, date: new Date(2013,11,26)};
 
 var xxx1;//BJ hack that allows clips to be render inside slider - remembers location of slider
 config.macros.ClipList = {};
@@ -260,41 +260,84 @@ var cliplistformatter =
 			}
 		}
 	};
-(function ()
-{
-	var myformatter =  [];
-	var requiredFormatter = {
-		ActiveFolder:{ 
-			table:true, 		heading:true, 		list:true, 			quoteByBlock:true,	
-			quoteByLine:true, 	rule:true,  		monospacedByLine:true, wikifyComment:true,
-			macro:true, 		prettyLink:true, 	wikiLink:true, 		    urlLink:true, 		
-			image:true, 		html:true, 			commentByBlock:true,	characterFormat:true, 
-			customFormat:true, mdash:true, 		lineBreak:true, 		rawText:true, 	
-			htmlEntitiesEncoding:true }
-	}
-    var i;
+	var cliplistformatterfixed =
+ {
+	name: "ClipList",
+	match: "\\n?\\Ꮬ{2}",
+	terminator: "\\s*\\Ꮻ{3}\\n?",
+	lookahead: "\\n?\\Ꮬ{2}(\\Ꮬ{2})?(\\*)?(\\@)?(\\[[^\\]]*\\])?",
+	handler: function(w)
+		{
+			 var start = w.matchStart;
+			 var lookaheadRegExp = new RegExp(this.lookahead,"mg");
+			lookaheadRegExp.lastIndex = w.matchStart;			//alert(w.tiddler.text.substring(w.matchStart,w.matchStart+20)+w.source.substring(w.matchStart,w.matchStart+20));
+			var lookaheadMatch = lookaheadRegExp.exec(w.source);
+			if(lookaheadMatch && lookaheadMatch.index == w.matchStart)
+			{
+							  
+				var soliton=lookaheadMatch[2];
+				var label=lookaheadMatch[4];		
+				var placeold=w.output;
+				var place;
+				// location for rendering button and panel				
 
-	for (tagName in requiredFormatter){
-		myformatter =  [];
-		for ( i=0; i<config.formatters.length; i++)  
-			if (requiredFormatter[tagName][config.formatters[i].name]===true) {//value from above table
-				  myformatter.push(config.formatters[i]);
-			};
-		 myformatter.push(cliplistformatter);	
-		var parser = new Formatter(myformatter);
-		parser.formatTag= tagName;//tag tiddlers with this
-		parser.format= tagName;
-		config.parsers[tagName]=parser; 
-	}    
-	return;
-	
-function cloneFormatter(formatter) {
-	var oldhtmlformatter = {};
-	for (var m in formatter) oldhtmlformatter[m] = formatter[m];
-	return oldhtmlformatter;
-}	       
-})();
-var cliplistflatformatter =
+				//var show="none"; 
+				var title='no title';
+				var tiddom=story.findContainingTiddler(placeold);
+				var titleis = tiddom.getAttribute("tiddler");
+				var tiddler = store.getTiddler(titleis);
+
+				var num = placeold.getAttribute("num");
+				if (!num) {
+					num=1;
+					{
+						place = config.macros.slider.createSlider(placeold,null,"From "+num);
+						xxx1=place;
+					}
+				}
+				else {
+					num++;
+					if (Math.floor((num)/10 ) * 10==num) {
+						place = config.macros.slider.createSlider(placeold,null,"From "+num);
+						xxx1=place;
+					}
+					else place = xxx1;
+				}
+				placeold.setAttribute("num",num);		
+					
+				var part3=label.split("-")
+				part3.shift();
+				label='['+num+'-'+part3.join("-");//strip leading number
+				if (label) title=label.trim().slice(1,-1);
+
+
+				// create the button
+				var clipbar=createTiddlyElement(place,"div",null,"annotation",null);
+				//var clipbar=createTiddlyElement(place,"div",null,null," ",{style:"font-size:12pt;line-height:12px"});
+				var container=createTiddlyElement(clipbar,"span",null,null,null);
+				var btn = createTiddlyElement(container,"a",null,null,title);//buttonClass,title);
+
+				btn.onclick=onClickClipList;
+				btn.setAttribute("href","javascript:;");
+				btn.innerHTML=title; 
+
+				// create slider display panel
+				var panelClass="sliderPanel";
+				var panel=createTiddlyElement(place,"div",null,panelClass,null);
+				panel.button = btn; // so the slider panel know which button it belongs to
+				btn.sliderPanel=panel; // so the button knows which slider panel it belongs to
+				panel.setAttribute("soliton",soliton=="*"?"true":"false");
+				panel.style.display = "none";
+			
+
+				// render slider 
+				w.nextMatch = lookaheadMatch.index + lookaheadMatch[0].length;
+				w.subWikify(panel,this.match);
+				
+			}
+		}
+	};
+	var cliplistflatformatter =
 
  {
 	name: "ClipList",
@@ -335,7 +378,59 @@ var cliplistflatformatter =
 			}
 		}
 	};
-config.formatters.push(cliplistflatformatter);
+(function ()
+{
+	var myformatter =  [];
+	var requiredFormatter = {
+		ActiveView:{ 
+			table:true, 		heading:true, 		list:true, 			quoteByBlock:true,	
+			quoteByLine:true, 	rule:true,  		monospacedByLine:true, wikifyComment:true,
+			macro:true, 		prettyLink:true, 	wikiLink:true, 		    urlLink:true, 		
+			image:true, 		html:true, 			commentByBlock:true,	characterFormat:true, 
+			customFormat:true, mdash:true, 		lineBreak:true, 		rawText:true, 	
+			htmlEntitiesEncoding:true },
+		FixedView:{ 
+			table:true, 		heading:true, 		list:true, 			quoteByBlock:true,	
+			quoteByLine:true, 	rule:true,  		monospacedByLine:true, wikifyComment:true,
+			macro:true, 		prettyLink:true, 	wikiLink:true, 		    urlLink:true, 		
+			image:true, 		html:true, 			commentByBlock:true,	characterFormat:true, 
+			customFormat:true, mdash:true, 		lineBreak:true, 		rawText:true, 	
+			htmlEntitiesEncoding:true },
+		FlatView:{ 
+			table:true, 		heading:true, 		list:true, 			quoteByBlock:true,	
+			quoteByLine:true, 	rule:true,  		monospacedByLine:true, wikifyComment:true,
+			macro:true, 		prettyLink:true, 	wikiLink:true, 		    urlLink:true, 		
+			image:true, 		html:true, 			commentByBlock:true,	characterFormat:true, 
+			customFormat:true, mdash:true, 		lineBreak:true, 		rawText:true, 	
+			htmlEntitiesEncoding:true }
+	}
+    var i;
+
+	for (tagName in requiredFormatter){
+		myformatter =  [];		
+		for (var m in requiredFormatter[tagName]) if (requiredFormatter[tagName][m]==true) {
+		 	for ( i=0; i<config.formatters.length; i++)  
+				if (config.formatters[i].name==m) {//value from above table
+					  myformatter.push(config.formatters[i]);
+				};
+		} 
+		if (tagName=='ActiveView') myformatter.push(cliplistformatter);
+		if (tagName=='FixedView') myformatter.push(cliplistformatterfixed); 
+		if (tagName=='FlatView') myformatter.push(cliplistflatformatter); 	 	
+		var parser = new Formatter(myformatter);
+		parser.formatTag= tagName;//tag tiddlers with this
+		parser.format= tagName;
+		config.parsers[tagName]=parser; 
+	}    
+	return;
+	
+function cloneFormatter(formatter) {
+	var oldhtmlformatter = {};
+	for (var m in formatter) oldhtmlformatter[m] = formatter[m];
+	return oldhtmlformatter;
+}	       
+})();
+
 
 function drag(ev)
 {
@@ -383,7 +478,7 @@ window.onClickClipList=function(e)
 		if (theSlider.getAttribute("editpanel")=="true") {
 			//window.onClickClipList.edit =true;
 			orgTarget.style.display="none";//hide edit button
-			theSlider.innerHTML= store.getTiddlerText("ClipListPlugin##EditTemplate2");//alert(theSlider.innerHTML);
+			theSlider.innerHTML= store.getTiddlerText("ClipFolderPlugin##EditTemplate2");//alert(theSlider.innerHTML);
 			applyHtmlMacros(theSlider,tiddler);
 		} else {     // if showing panel, set focus to first 'focus-able' element in panel
 		
@@ -434,7 +529,7 @@ Story.prototype.old.gatherSaveFields=Story.prototype.gatherSaveFields;
 Story.prototype.gatherSaveFields = function(e,fields){
 	fields['text']="";
 	if(e && e.getAttribute) {
-		if (e.getAttribute("template")=="ClipListPlugin##ViewTemplate") {
+		if (e.getAttribute("template")=="ClipFolderPlugin##ViewTemplate") {
 			var newVal = config.macros.myedit.gather(e,fields);
 			if (newVal) fields[f] = newVal;
 		} else
@@ -490,7 +585,7 @@ config.macros.myedit.gather = function(e,fields)
 };
 config.macros.drophere={};
 config.macros.drophere.handler= function(place, macroName,params,wikifier,paramString,tiddler) {
-					var tiddom=story.findContainingTiddler(place);
+				var tiddom=story.findContainingTiddler(place);
 				var titleis = tiddom.getAttribute("tiddler");
 				
 				tiddom.ondragover=function (ev)
@@ -500,6 +595,7 @@ config.macros.drophere.handler= function(place, macroName,params,wikifier,paramS
 
 				tiddom.ondrop=	function(ev)
 				{
+					if (store.getValue(tiddler.title,"wikiformat")!="ActiveView") return;
 					ev.preventDefault();
 					var dropcontent = config.macros.ClipList.drophandler(ev.dataTransfer.getData("Text"),["clip"]);
 					if (dropcontent[0]=='error' || dropcontent[0]=='unsupported') return;
@@ -610,17 +706,17 @@ config.macros.myedit.handler= function(place, macroName,params,wikifier,paramStr
 		}
 		if(tiddler.isReadOnly()) {
 			e.setAttribute("readOnly","readOnly");
-			jQuery(e).addClass("readOnly");
+			jQuery(e).addClass("readOnly");//BJ FIXME - REPLACE JQUERY
 		}
 		return e;
 	}else ("error");
 };
 config.macros.newClipList={};
-config.macros.newClipList.label="new clip list";
-config.macros.newClipList.prompt="new clip list";
+config.macros.newClipList.label="new clipfolder";
+config.macros.newClipList.prompt="new clipfolder";
 config.macros.newClipList.accessKey=null;
-config.macros.newClipList.title="new clip list";
-config.macros.newClipList.template="ClipListPlugin##EditTemplate";
+config.macros.newClipList.title="new clipfolder";
+config.macros.newClipList.template="ClipFolderPlugin##EditTemplate";
 config.macros.newClipList.handler = function(place,macroName,params,wikifier,paramString)
 {
 	if(!readOnly) {
@@ -629,19 +725,66 @@ config.macros.newClipList.handler = function(place,macroName,params,wikifier,par
 		title = getParam(params,"title",title);
 		var btn=config.macros.newTiddler.createNewTiddlerButton(place,title,params,this.label,this.prompt,this.accessKey,"text",true);
 		btn.setAttribute("newTemplate",this.template);
+		btn.setAttribute("customFields","'wikiformat':'ActiveView' 'template':'ClipFolderPlugin##'");
 		btn.setAttribute("newText","");
 	}
 };
-config.shadowTiddlers.SideBarOptions = "<<newClipList fields:'template:ClipListPlugin##'>>"
+//fields:'template:ClipFolderPlugin##'
+config.shadowTiddlers.SideBarOptions = "<<newClipList >>"
                                        +config.shadowTiddlers.SideBarOptions;
 //}}}
+/*{{{*/
+config.commands.clipviews={type: "popup"};
+config.commands.clipviews.handlePopup = function(popup,titleOrig)
+{
+var tiddler = store.getTiddler(titleOrig);
+function clickHere2(ev)
+{
+	var view =this.getAttribute("view");
+
+	tiddler.fields["wikiformat"]=view;
+	if (view=='ActiveView') tiddler.fields["template"]='ClipFolderPlugin##';
+	else tiddler.fields["template"]='ClipFolderPlugin##Flat';
+	store.saveTiddler(tiddler);
+				story.refreshTiddler(titleOrig,"ViewTemplate",true);
+	//alert(store.getValue(tiddler.title,config.options.txtTemplateTweakFieldname));
+	//autoSaveChanges();
+};
+
+	var clipviews = ['ActiveView','FixedView','FlatView'];
+	wikify("clipviews:<br><hr>",popup,null,null);
+	var ul = createTiddlyElement(popup,"ul","","popupMessage");
+	for(t=0; t<clipviews.length; t++) {
+
+		var title = clipviews[t];
+
+		//var info = getTiddlyLinkInfo(title);
+		if (tiddler.fields["wikiformat"]==title) {    
+			var li = createTiddlyElement(ul,"li",null,"highlight",null,{style:"list-style:none;"});
+			var btn = createTiddlyButton(li,title,"current",clickHere2);
+		} else {
+			var li = createTiddlyElement(ul,"li",null,"",null,{style:"list-style:none;"});
+			var btn = createTiddlyButton(li,title,"set",clickHere2);
+		} 
+		btn.setAttribute("view",title);
+		//btn.setAttribute("refresh","link");
+		//btn.setAttribute("tiddlyLink",title);
+
+	}
+};
+merge(config.commands.clipviews,{
+	text: "changeViews,
+	tooltip: "change to active/passive/flat"});
+/*}}}*/
+
 /*
-|~ViewToolbar|closeTiddler +editTiddler > fields syncing permalink references jump|
+|~ViewToolbar|closeTiddler +editTiddler  clipviews > fields syncing permalink references jump|
+|~ViewToolOther|closeTiddler  clipviews > fields syncing permalink references jump|
 |~EditToolbar|+saveTiddler -cancelTiddler deleteTiddler|
 drophere
 !ViewTemplate
 <!--{{{-->
-<div class='toolbar'><span  macro='ClipList'></span><span macro='toolbar [[ClipListPlugin::ViewToolbar]]'></span></div>
+<div class='toolbar'><span  macro='ClipList'></span><span macro='toolbar [[ClipFolderPlugin::ViewToolbar]]'></span></div>
 <div class='title' macro='view title'></div>
 <div class='subtitle'><span macro='view modifier link'></span>, <span macro='view modified date'></span> (<span macro='message views.wikified.createdPrompt'></span> <span macro='view created date'></span>)</div>
 <div class='tagging' macro='tagging'></div>
@@ -650,7 +793,17 @@ drophere
 <div class='viewer' macro='view text wikified'></div>
 <div class='tagClear'></div>
 <!--}}}-->
-
+!FlatViewTemplate
+<!--{{{-->
+<div class='toolbar'><span macro='toolbar [[ClipFolderPlugin::ViewToolOther]]'></span></div>
+<div class='title' macro='view title'></div>
+<div class='subtitle'><span macro='view modifier link'></span>, <span macro='view modified date'></span> (<span macro='message views.wikified.createdPrompt'></span> <span macro='view created date'></span>)</div>
+<div class='tagging' macro='tagging'></div>
+<div class='tagged' macro='tags'></div>
+<div class='drophere' macro='drophere'></div>
+<div class='viewer' macro='view text wikified'></div>
+<div class='tagClear'></div>
+<!--}}}-->
 !EditTemplate2
 *<!--{{{-->
 <div  macro='toolbar +saveTiddler -cancelMylTiddler'></div>
