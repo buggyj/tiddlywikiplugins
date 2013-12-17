@@ -1,3 +1,4 @@
+/***
 |Name|ckeditorplugin|
 |Version|1.0|
 |Author|BJ|

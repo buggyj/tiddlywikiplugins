@@ -366,7 +366,7 @@ var cliplistformatter =
 				var tiddler = store.getTiddler(titleis);
 		
 					
-				var part3=label.split("-")
+				var part3=label.split("-");
 				part3.shift();
 				label=part3.join("-");//strip leading number
 				if (label) title=label.trim().slice(0,-1);
@@ -694,15 +694,20 @@ config.macros.myedit.handler= function(place, macroName,params,wikifier,paramStr
 			rows = Math.min(rows,maxLines);
 			e.setAttribute("rows",rows);
 			e.setAttribute("edit",field);
-			var ck ="editor"+ Math.random();
-			e.setAttribute("name",ck);
-			e.setAttribute("id",ck);
-			
 			place.appendChild(wrapper1);
-			if (!!config.options.chkNotWysiwyg) 
-				CKEDITOR.replace(ck,{skin : 'moono'});
-			else
-				CKEDITOR.replace(ck,{ extraPlugins : 'divarea', skin : 'moonodiv'});
+			if (parts[1].indexOf("<html")!=-1 && parts[1].indexOf("<html")<3) {
+				if (typeof CKEDITOR != 'undefined') {
+					var ck ="editor"+ Math.random();
+					e.setAttribute("name",ck);
+					e.setAttribute("id",ck);
+				
+					if (!!config.options.chkNotWysiwyg) 
+						CKEDITOR.replace(ck,{skin : 'moono'});
+					else
+						CKEDITOR.replace(ck,{ extraPlugins : 'divarea', skin : 'moonodiv'});
+				} else alert("CKEDITOR undefined");
+			}
+
 		}
 		if(tiddler.isReadOnly()) {
 			e.setAttribute("readOnly","readOnly");
@@ -773,7 +778,7 @@ function clickHere2(ev)
 	}
 };
 merge(config.commands.clipviews,{
-	text: "changeViews,
+	text: "changeViews",
 	tooltip: "change to active/passive/flat"});
 /*}}}*/
 
