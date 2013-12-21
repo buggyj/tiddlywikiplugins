@@ -2,7 +2,7 @@
 |Name|ClipFolderPlugin|
 |Version|1.0|
 |Author|BJ|
-|Date:|14-12-2013|
+|Date:|21-12-2013|
 |License|[[Creative Commons Attribution-ShareAlike 2.5 License|http://creativecommons.org/licenses/by-sa/2.5/]]|
 |Type|plugin|
 |CoreVersion|2.5|
