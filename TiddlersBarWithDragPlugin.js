@@ -9,8 +9,7 @@
 |''License:''|[[BSD open source license|License]]|
 |''~CoreVersion:''|2.1.0|
 |''Browser:''|Firefox 2.0; InternetExplorer 6.0, others|
-!Demos
-On [[homepage|http://visualtw.ouvaton.org/VisualTW.html]], open several tiddlers to use the tabs bar.
+
 !Installation
 #import this tiddler from [[homepage|http://visualtw.ouvaton.org/VisualTW.html]] (tagged as systemConfig)
 #save and reload
@@ -58,6 +57,7 @@ config.macros.tiddlersBar = {
 					var d = createTiddlyElement(place,"span",null,"tab tabUnselected");
 					var btn = createTiddlyButton(d,title,config.macros.tiddlersBar.tooltip + title,config.macros.tiddlersBar.onSelectTab);
 					btn.setAttribute("tiddler", title);
+					btn.ondragover=config.macros.tiddlersBar.ondragover;
 					if (previous=="active" && config.macros.tiddlersBar.nextKey) btn.setAttribute("accessKey",config.macros.tiddlersBar.previousKey);
 					previous=btn;
 				}
@@ -109,6 +109,13 @@ config.macros.tiddlersBar = {
 		if (t) story.displayTiddler(null,t);
 		return false;
 	},
+	ondragover:function (ev)
+		{
+			ev.preventDefault();
+		var t = this.getAttribute("tiddler");
+		if (t) story.displayTiddler(null,t);
+		return false;
+		},
 	onTabClose : function(e){
 		var t = this.getAttribute("tiddler");
 		if (t) {
