@@ -2,7 +2,7 @@
 |Name|ClipFolderPlugin|
 |Version|1.0|
 |Author|BJ|
-|Date:|21-12-2013|
+|Date:|19-4-2014|
 |License|[[Creative Commons Attribution-ShareAlike 2.5 License|http://creativecommons.org/licenses/by-sa/2.5/]]|
 |Type|plugin|
 |CoreVersion|2.5|
@@ -15,7 +15,7 @@ Create and manage folders of  clips - for use with tiddlyclip
 !!!!!Code
 ***/
 //{{{
-//version.extensions.ClipFolderPlugin= {major: 1, minor: 1, revision: 1, date: new Date(2013,11,26)};
+//version.extensions.ClipFolderPlugin= {major: 1, minor: 1, revision: 2, date: new Date(2014,4,19)};
 
 var xxx1;//BJ hack that allows clips to be render inside slider - remembers location of slider
 config.macros.ClipList = {};
@@ -155,108 +155,123 @@ var cliplistformatter =
 				var titleis = tiddom.getAttribute("tiddler");
 				var tiddler = store.getTiddler(titleis);
 
-				var num = placeold.getAttribute("num");
-				if (!num) {
-					num=1;
-					{
-						place = config.macros.slider.createSlider(placeold,null,"From "+num);
-						xxx1=place;
-					}
-				}
-				else {
-					num++;
-					if (Math.floor((num)/10 ) * 10==num) {
-						place = config.macros.slider.createSlider(placeold,null,"From "+num);
-						xxx1=place;
-					}
-					else place = xxx1;
-				}
-				placeold.setAttribute("num",num);		
+				if (titleis !==w.tiddler.title) {//flat view if transcluded
+					var part3=label.split("-");
+					part3.shift();
+					label=part3.join("-");//strip leading number
+					if (label) title=label.trim().slice(0,-1);
+					//wikify !+title here
+					createTiddlyElement(placeold,"div",null,"annotation",title);
+					w.nextMatch=w.source.indexOf("!/%",lookaheadMatch.index+lookaheadMatch[0].length);
+
+				} else {
 					
-				var part3=label.split("-")
-				part3.shift();
-				label='['+num+'-'+part3.join("-");//strip leading number
-				if (label) title=label.trim().slice(1,-1);
-
-
-				// create the button
-				var clipbar=createTiddlyElement(place,"div",null,"annotation",null);
-				//var clipbar=createTiddlyElement(place,"div",null,null," ",{style:"font-size:12pt;line-height:12px"});
-				var container=createTiddlyElement(clipbar,"span",null,null,null);
-				var btn = createTiddlyElement(container,"a",null,null,title);//buttonClass,title);
-
-				btn.onclick=onClickClipList;
-				btn.setAttribute("href","javascript:;");
-				btn.innerHTML=title; 
-				btn.setAttribute("draggable","true");
-				btn.setAttribute("ondragstart","drag(event)");
-				// create slider display panel
-				var panelClass="sliderPanel";
-				var panel=createTiddlyElement(place,"div",null,panelClass,null);
-				panel.button = btn; // so the slider panel know which button it belongs to
-				btn.sliderPanel=panel; // so the button knows which slider panel it belongs to
-				panel.setAttribute("soliton",soliton=="*"?"true":"false");
-				panel.style.display = "none";
-			
-				var editbutton=createTiddlyElement(clipbar,"span",null,null,null);
-				editbutton.align="right"
-                editbutton.setAttribute("macro","toolbar myedit");
-
-				var editpanel=createTiddlyElement(place,"div",null,panelClass,null);
-				editpanel.setAttribute("soliton","true");
-				editpanel.setAttribute("editpanel","true");
-				editpanel.style.display = "none"
-				editpanel.button = editbutton;
-			    editbutton.sliderPanel=editpanel;
-				// render slider 
-				w.nextMatch = lookaheadMatch.index + lookaheadMatch[0].length;
-				w.subWikify(panel,this.match);
-				
-				//copy source into edit panel
-                var src = w.source.substring(start,w.nextMatch);
-
-                if  (src.slice(src.length-2)=='ᏜᏜ') {
-					src=src.slice(0,-2);
-				}         
-				if  (src.substr(0,4)=='ᏜᏜᏜᏜ') 
-					editpanel.setAttribute("clipsrc",src);
-				else
-					editpanel.setAttribute("clipsrc",'ᏜᏜ'+src);
-				btn.editpanel=editpanel;
-				btn.ondragover=function (ev)
-				{
-					ev.preventDefault();
-				}
-
-				btn.ondrop=	function(e)
-				{
-					if (!e) var e = window.event;
-					var dropcontent = config.macros.ClipList.drophandler(e.dataTransfer.getData("Text"),["clip"]);
-					if (dropcontent[0]=='error' || dropcontent[0]=='unsupported') return;
-					if(dropcontent[1].substr(0,2)!="ᏜᏜ"){alert("format error");return;}
-					var txt=tiddler.text;
-					var parts= txt.split(dropcontent[1]);//remove moving clip from present location
-					if(2!=parts.length) {
-						if (txt.substr(0, dropcontent[1].length)!=dropcontent[1]) return;//not first clip in this list
-						else txt= txt.substr(dropcontent[1].length); //remove first item
-					} else {
-						txt= parts.join("");					
+					var num = placeold.getAttribute("num");
+					if (!num) {
+						num=1;
+						{
+							place = config.macros.slider.createSlider(placeold,null,"From "+num);
+							xxx1=place;
+						}
 					}
-                    e.cancelBubble = true;
-					if (e.stopPropagation)   e.stopPropagation();
+					else {
+						num++;
+						if (Math.floor((num)/10 ) * 10==num) {
+							place = config.macros.slider.createSlider(placeold,null,"From "+num);
+							xxx1=place;
+						}
+						else place = xxx1;
+					}
+					placeold.setAttribute("num",num);		
+						
+					var part3=label.split("-")
+					part3.shift();
+					label='['+num+'-'+part3.join("-");//strip leading number
+					if (label) title=label.trim().slice(1,-1);
 
-					//now splice in the moving clip
-					var oldtxt =btn.editpanel.getAttribute("clipsrc");
-					var parts= txt.split(oldtxt);//remove target clip from present location
-					if(2!=parts.length)	tiddler.text= dropcontent[1]+txt;//begining of list
-					else 				tiddler.text= parts.join(dropcontent[1]+oldtxt);
-					store.saveTiddler(tiddler.title,tiddler.title,tiddler.text,tiddler.modifier,tiddler.modified,tiddler.tags,tiddler.fields,true,tiddler.created,tiddler.creator);
-					autoSaveChanges(null,[tiddler]);
-					story.refreshTiddler(tiddler.title,null,true);
 
-					return(false);
+					// create the button
+					var clipbar=createTiddlyElement(place,"div",null,"annotation",null);
+					//var clipbar=createTiddlyElement(place,"div",null,null," ",{style:"font-size:12pt;line-height:12px"});
+					var container=createTiddlyElement(clipbar,"span",null,null,null);
+					var btn = createTiddlyElement(container,"a",null,null,title);//buttonClass,title);
+
+					btn.onclick=onClickClipList;
+					btn.setAttribute("href","javascript:;");
+					btn.innerHTML=title; 
+					btn.setAttribute("draggable","true");
+					btn.setAttribute("ondragstart","drag(event)");
+					// create slider display panel
+					var panelClass="sliderPanel";
+					var panel=createTiddlyElement(place,"div",null,panelClass,null);
+					panel.button = btn; // so the slider panel know which button it belongs to
+					btn.sliderPanel=panel; // so the button knows which slider panel it belongs to
+					panel.setAttribute("soliton",soliton=="*"?"true":"false");
+					panel.style.display = "none";
+				
+					var editbutton=createTiddlyElement(clipbar,"span",null,null,null);
+					editbutton.align="right"
+					editbutton.setAttribute("macro","toolbar myedit");
+
+					var editpanel=createTiddlyElement(place,"div",null,panelClass,null);
+					editpanel.setAttribute("soliton","true");
+					editpanel.setAttribute("editpanel","true");
+					editpanel.style.display = "none"
+					editpanel.button = editbutton;
+					editbutton.sliderPanel=editpanel;
+					// render slider 
+					w.nextMatch = lookaheadMatch.index + lookaheadMatch[0].length;
+					//stop leaking of term regex in subtree
+					var next = w.source.indexOf ("ᏜᏜ",lookaheadMatch.index+lookaheadMatch[0].length);
+					var oldsource = w.source;
+					if (next !=-1) w.source = w.source.substr(0,next);
+					w.subWikify(panel);
+					w.source =oldsource;
+					//copy source into edit panel
+					var src = w.source.substring(start,w.nextMatch);
+
+					if  (src.slice(src.length-2)=='ᏜᏜ') {
+						src=src.slice(0,-2);
+					}         
+					if  (src.substr(0,4)=='ᏜᏜᏜᏜ') 
+						editpanel.setAttribute("clipsrc",src);
+					else
+						editpanel.setAttribute("clipsrc",'ᏜᏜ'+src);
+					btn.editpanel=editpanel;
+					btn.ondragover=function (ev)
+					{
+						ev.preventDefault();
+					}
+
+					btn.ondrop=	function(e)
+					{
+						if (!e) var e = window.event;
+						var dropcontent = config.macros.ClipList.drophandler(e.dataTransfer.getData("Text"),["clip"]);
+						if (dropcontent[0]=='error' || dropcontent[0]=='unsupported') return;
+						if(dropcontent[1].substr(0,2)!="ᏜᏜ"){alert("format error");return;}
+						var txt=tiddler.text;
+						var parts= txt.split(dropcontent[1]);//remove moving clip from present location
+						if(2!=parts.length) {
+							if (txt.substr(0, dropcontent[1].length)!=dropcontent[1]) return;//not first clip in this list
+							else txt= txt.substr(dropcontent[1].length); //remove first item
+						} else {
+							txt= parts.join("");					
+						}
+						e.cancelBubble = true;
+						if (e.stopPropagation)   e.stopPropagation();
+
+						//now splice in the moving clip
+						var oldtxt =btn.editpanel.getAttribute("clipsrc");
+						var parts= txt.split(oldtxt);//remove target clip from present location
+						if(2!=parts.length)	tiddler.text= dropcontent[1]+txt;//begining of list
+						else 				tiddler.text= parts.join(dropcontent[1]+oldtxt);
+						store.saveTiddler(tiddler.title,tiddler.title,tiddler.text,tiddler.modifier,tiddler.modified,tiddler.tags,tiddler.fields,true,tiddler.created,tiddler.creator);
+						autoSaveChanges(null,[tiddler]);
+						story.refreshTiddler(tiddler.title,null,true);
+
+						return(false);
+					}
 				}
-
 			}
 		}
 	};
@@ -286,54 +301,70 @@ var cliplistformatter =
 				var tiddom=story.findContainingTiddler(placeold);
 				var titleis = tiddom.getAttribute("tiddler");
 				var tiddler = store.getTiddler(titleis);
-
-				var num = placeold.getAttribute("num");
-				if (!num) {
-					num=1;
-					{
-						place = config.macros.slider.createSlider(placeold,null,"From "+num);
-						xxx1=place;
-					}
-				}
-				else {
-					num++;
-					if (Math.floor((num)/10 ) * 10==num) {
-						place = config.macros.slider.createSlider(placeold,null,"From "+num);
-						xxx1=place;
-					}
-					else place = xxx1;
-				}
-				placeold.setAttribute("num",num);		
-					
-				var part3=label.split("-")
-				part3.shift();
-				label='['+num+'-'+part3.join("-");//strip leading number
-				if (label) title=label.trim().slice(1,-1);
-
-
-				// create the button
-				var clipbar=createTiddlyElement(place,"div",null,"annotation",null);
-				//var clipbar=createTiddlyElement(place,"div",null,null," ",{style:"font-size:12pt;line-height:12px"});
-				var container=createTiddlyElement(clipbar,"span",null,null,null);
-				var btn = createTiddlyElement(container,"a",null,null,title);//buttonClass,title);
-
-				btn.onclick=onClickClipList;
-				btn.setAttribute("href","javascript:;");
-				btn.innerHTML=title; 
-
-				// create slider display panel
-				var panelClass="sliderPanel";
-				var panel=createTiddlyElement(place,"div",null,panelClass,null);
-				panel.button = btn; // so the slider panel know which button it belongs to
-				btn.sliderPanel=panel; // so the button knows which slider panel it belongs to
-				panel.setAttribute("soliton",soliton=="*"?"true":"false");
-				panel.style.display = "none";
-			
-
-				// render slider 
-				w.nextMatch = lookaheadMatch.index + lookaheadMatch[0].length;
-				w.subWikify(panel,this.match);
 				
+				if (titleis !==w.tiddler.title) {//flat view if transcluded
+					var part3=label.split("-");
+					part3.shift();
+					label=part3.join("-");//strip leading number
+					if (label) title=label.trim().slice(0,-1);
+					//wikify !+title here
+					createTiddlyElement(placeold,"div",null,"annotation",title);
+					w.nextMatch=w.source.indexOf("!/%",lookaheadMatch.index+lookaheadMatch[0].length);
+
+				} else {
+					var num = placeold.getAttribute("num");
+					if (!num) {
+						num=1;
+						{
+							place = config.macros.slider.createSlider(placeold,null,"From "+num);
+							xxx1=place;
+						}
+					}
+					else {
+						num++;
+						if (Math.floor((num)/10 ) * 10==num) {
+							place = config.macros.slider.createSlider(placeold,null,"From "+num);
+							xxx1=place;
+						}
+						else place = xxx1;
+					}
+					placeold.setAttribute("num",num);		
+						
+					var part3=label.split("-")
+					part3.shift();
+					label='['+num+'-'+part3.join("-");//strip leading number
+					if (label) title=label.trim().slice(1,-1);
+
+
+					// create the button
+					var clipbar=createTiddlyElement(place,"div",null,"annotation",null);
+					//var clipbar=createTiddlyElement(place,"div",null,null," ",{style:"font-size:12pt;line-height:12px"});
+					var container=createTiddlyElement(clipbar,"span",null,null,null);
+					var btn = createTiddlyElement(container,"a",null,null,title);//buttonClass,title);
+
+					btn.onclick=onClickClipList;
+					btn.setAttribute("href","javascript:;");
+					btn.innerHTML=title; 
+
+					// create slider display panel
+					var panelClass="sliderPanel";
+					var panel=createTiddlyElement(place,"div",null,panelClass,null);
+					panel.button = btn; // so the slider panel know which button it belongs to
+					btn.sliderPanel=panel; // so the button knows which slider panel it belongs to
+					panel.setAttribute("soliton",soliton=="*"?"true":"false");
+					panel.style.display = "none";
+				
+
+					// render slider 
+					w.nextMatch = lookaheadMatch.index + lookaheadMatch[0].length;
+										var next = w.source.indexOf ("ᏜᏜ",lookaheadMatch.index+lookaheadMatch[0].length);
+					var oldsource = w.source;
+					if (next !=-1) w.source = w.source.substr(0,next);
+					w.subWikify(panel);
+					w.source =oldsource;
+
+					
+				}
 			}
 		}
 	};
@@ -373,7 +404,7 @@ var cliplistformatter =
 
 
 				//wikify !+title here
-			    createTiddlyElement(place,"div",null,"annotation",null).innerHTML = title;
+			    createTiddlyElement(placeold,"div",null,"annotation",null).innerHTML = title;
 				w.nextMatch=w.source.indexOf("!/%",lookaheadMatch.index+lookaheadMatch[0].length);
 			}
 		}
